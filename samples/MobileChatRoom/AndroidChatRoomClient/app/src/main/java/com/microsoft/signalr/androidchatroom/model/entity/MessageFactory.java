@@ -1,4 +1,4 @@
-package com.microsoft.signalr.androidchatroom.message;
+package com.microsoft.signalr.androidchatroom.model.entity;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -8,6 +8,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.microsoft.signalr.androidchatroom.util.MessageTypeUtils;
+import com.microsoft.signalr.androidchatroom.util.SimpleCallback;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -23,7 +25,7 @@ public class MessageFactory {
     private final static Gson gson = new Gson();
 
     public static Message createReceivedTextBroadcastMessage(String messageId, String sender, String payload, long time) {
-        Message message = new Message(messageId, MessageTypeEnum.RECEIVED_TEXT_BROADCAST_MESSAGE);
+        Message message = new Message(messageId, MessageTypeUtils.calculateMessageType(MessageTypeConstant.BROADCAST, MessageTypeConstant.TEXT, MessageTypeConstant.RECEIVED));
         message.setSender(sender);
         message.setReceiver(Message.BROADCAST_RECEIVER);
         message.setPayload(payload);
@@ -32,7 +34,7 @@ public class MessageFactory {
     }
 
     public static Message createReceivedImageBroadcastMessage(String messageId, String sender, String payload, long time) {
-        Message message = new Message(messageId, MessageTypeEnum.RECEIVED_IMAGE_BROADCAST_MESSAGE);
+        Message message = new Message(messageId, MessageTypeUtils.calculateMessageType(MessageTypeConstant.BROADCAST, MessageTypeConstant.IMAGE, MessageTypeConstant.RECEIVED));
         message.setSender(sender);
         message.setReceiver(Message.BROADCAST_RECEIVER);
         message.setPayload(payload);
@@ -41,7 +43,7 @@ public class MessageFactory {
     }
 
     public static Message createSendingTextBroadcastMessage(String sender, String payload, long time) {
-        Message message = new Message(MessageTypeEnum.SENDING_TEXT_BROADCAST_MESSAGE);
+        Message message = new Message(MessageTypeUtils.calculateMessageType(MessageTypeConstant.BROADCAST, MessageTypeConstant.TEXT, MessageTypeConstant.SENDING));
         message.setSender(sender);
         message.setReceiver(Message.BROADCAST_RECEIVER);
         message.setPayload(payload);
@@ -50,21 +52,21 @@ public class MessageFactory {
     }
 
     public static Message createSendingImageBroadcastMessage(String sender, Bitmap bmp, long time, SimpleCallback<Message> callback) {
-        Message message = new Message(MessageTypeEnum.SENDING_IMAGE_BROADCAST_MESSAGE);
+        Message message = new Message(MessageTypeUtils.calculateMessageType(MessageTypeConstant.BROADCAST, MessageTypeConstant.IMAGE, MessageTypeConstant.SENDING));
         message.setSender(sender);
         message.setReceiver(Message.BROADCAST_RECEIVER);
         message.setBmp(bmp);
         new Thread(() -> {
             String payload = encodeToBase64(bmp);
             message.setPayload(payload);
-            callback.run(message);
+            callback.onSuccess(message);
         }).start();
         message.setTime(time);
         return message;
     }
 
     public static Message createReceivedTextPrivateMessage(String messageId, String sender, String receiver, String payload, long time) {
-        Message message = new Message(messageId, MessageTypeEnum.RECEIVED_TEXT_PRIVATE_MESSAGE);
+        Message message = new Message(messageId, MessageTypeUtils.calculateMessageType(MessageTypeConstant.PRIVATE, MessageTypeConstant.TEXT, MessageTypeConstant.RECEIVED));
         message.setSender(sender);
         message.setReceiver(receiver);
         message.setPayload(payload);
@@ -73,7 +75,7 @@ public class MessageFactory {
     }
 
     public static Message createReceivedImagePrivateMessage(String messageId, String sender, String receiver, String payload, long time) {
-        Message message = new Message(messageId, MessageTypeEnum.RECEIVED_IMAGE_PRIVATE_MESSAGE);
+        Message message = new Message(messageId, MessageTypeUtils.calculateMessageType(MessageTypeConstant.PRIVATE, MessageTypeConstant.IMAGE, MessageTypeConstant.RECEIVED));
         message.setSender(sender);
         message.setReceiver(receiver);
         message.setPayload(payload);
@@ -82,7 +84,7 @@ public class MessageFactory {
     }
 
     public static Message createSendingTextPrivateMessage(String sender, String receiver, String payload, long time) {
-        Message message = new Message(MessageTypeEnum.SENDING_TEXT_PRIVATE_MESSAGE);
+        Message message = new Message(MessageTypeUtils.calculateMessageType(MessageTypeConstant.PRIVATE, MessageTypeConstant.TEXT, MessageTypeConstant.SENDING));
         message.setSender(sender);
         message.setReceiver(receiver);
         message.setPayload(payload);
@@ -91,21 +93,21 @@ public class MessageFactory {
     }
 
     public static Message createSendingImagePrivateMessage(String sender, String receiver, Bitmap bmp, long time, SimpleCallback<Message> callback) {
-        Message message = new Message(MessageTypeEnum.SENDING_IMAGE_PRIVATE_MESSAGE);
+        Message message = new Message(MessageTypeUtils.calculateMessageType(MessageTypeConstant.PRIVATE, MessageTypeConstant.IMAGE, MessageTypeConstant.SENDING));
         message.setSender(sender);
         message.setReceiver(receiver);
         message.setBmp(bmp);
         new Thread(() -> {
             String payload = encodeToBase64(bmp);
             message.setPayload(payload);
-            callback.run(message);
+            callback.onSuccess(message);
         }).start();
         message.setTime(time);
         return message;
     }
 
     public static Message createReceivedSystemMessage(String messageId, String payload, long time) {
-        Message message = new Message(messageId, MessageTypeEnum.SYSTEM_MESSAGE);
+        Message message = new Message(messageId, MessageTypeUtils.calculateMessageType(MessageTypeConstant.SYSTEM, MessageTypeConstant.TEXT, MessageTypeConstant.RECEIVED));
         message.setSender(Message.SYSTEM_SENDER);
         message.setReceiver(Message.BROADCAST_RECEIVER);
         message.setPayload(payload);
@@ -126,43 +128,45 @@ public class MessageFactory {
         } catch (Exception e) {
             time = 0;
         }
-        MessageTypeEnum type;
+        int messageType;
         int rawType = jsonObject.get("Type").getAsInt();
         if (isImage) {
             if (rawType == 0) {
                 if (sender.equals(sessionUser)) {
-                    type = MessageTypeEnum.SENT_IMAGE_PRIVATE_MESSAGE;
+                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.PRIVATE, MessageTypeConstant.IMAGE, MessageTypeConstant.SENT);
                 } else {
-                    type = MessageTypeEnum.RECEIVED_IMAGE_PRIVATE_MESSAGE;
+                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.PRIVATE, MessageTypeConstant.IMAGE, MessageTypeConstant.RECEIVED);
                 }
             } else {
                 if (sender.equals(sessionUser)) {
-                    type = MessageTypeEnum.SENT_IMAGE_BROADCAST_MESSAGE;
+                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.BROADCAST, MessageTypeConstant.IMAGE, MessageTypeConstant.SENT);
                 } else {
-                    type = MessageTypeEnum.RECEIVED_IMAGE_BROADCAST_MESSAGE;
+                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.BROADCAST, MessageTypeConstant.IMAGE, MessageTypeConstant.RECEIVED);
                 }
             }
         } else {
             if (rawType == 0) {
                 if (sender.equals(sessionUser)) {
-                    type = MessageTypeEnum.SENT_TEXT_PRIVATE_MESSAGE;
+                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.PRIVATE, MessageTypeConstant.TEXT, MessageTypeConstant.SENT);
                 } else {
-                    type = MessageTypeEnum.RECEIVED_TEXT_PRIVATE_MESSAGE;
+                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.PRIVATE, MessageTypeConstant.TEXT, MessageTypeConstant.RECEIVED);
                 }
             } else {
                 if (sender.equals(sessionUser)) {
-                    type = MessageTypeEnum.SENT_TEXT_BROADCAST_MESSAGE;
+                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.BROADCAST, MessageTypeConstant.TEXT, MessageTypeConstant.SENT);
                 } else {
-                    type = MessageTypeEnum.RECEIVED_TEXT_BROADCAST_MESSAGE;
+                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.BROADCAST, MessageTypeConstant.TEXT, MessageTypeConstant.RECEIVED);
                 }
             }
         }
-        Message message = new Message(messageId, type);
+        Message message = new Message(messageId, messageType);
         message.setSender(sender);
         message.setReceiver(receiver);
         message.setPayload(payload);
         message.setTime(time);
-        message.setRead(isRead);
+        if (isRead) {
+            message.setMessageType(MessageTypeUtils.setStatus(message.getMessageType(), MessageTypeConstant.READ));
+        }
         return message;
     }
 

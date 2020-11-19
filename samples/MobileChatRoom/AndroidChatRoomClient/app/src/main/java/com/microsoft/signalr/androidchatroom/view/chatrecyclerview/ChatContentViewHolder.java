@@ -1,4 +1,4 @@
-package com.microsoft.signalr.androidchatroom.fragment.chatrecyclerview;
+package com.microsoft.signalr.androidchatroom.view.chatrecyclerview;
 
 import android.view.View;
 import android.widget.ImageView;
@@ -7,7 +7,7 @@ import android.widget.TextView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.microsoft.signalr.androidchatroom.R;
-import com.microsoft.signalr.androidchatroom.message.Message;
+import com.microsoft.signalr.androidchatroom.model.entity.Message;
 
 public class ChatContentViewHolder extends RecyclerView.ViewHolder {
     // For all non-system message

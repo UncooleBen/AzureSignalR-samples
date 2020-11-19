@@ -7,15 +7,16 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.FragmentManager;
+
 import com.microsoft.signalr.androidchatroom.R;
-import com.microsoft.signalr.androidchatroom.service.ChatService;
 import com.microsoft.signalr.androidchatroom.service.NotificationService;
-import com.microsoft.signalr.androidchatroom.service.SignalRChatService;
 import com.microsoft.signalr.androidchatroom.service.FirebaseService;
+import com.microsoft.signalr.androidchatroom.view.ChatFragment;
+import com.microsoft.signalr.androidchatroom.view.LoginFragment;
 
 import android.content.Intent;
 import android.os.IBinder;
-import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -23,27 +24,16 @@ public class MainActivity extends AppCompatActivity {
     public static MainActivity mainActivity;
     public static Boolean isVisible = false;
 
-
-    private ChatService chatService;
-    private final ServiceConnection chatServiceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            SignalRChatService.ChatServiceBinder chatServiceBinder = (SignalRChatService.ChatServiceBinder) service;
-            chatService = chatServiceBinder.getService();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            chatService = null;
-        }
-    };
-
     private NotificationService notificationService;
+
+    private LoginFragment loginFragment;
+
     private final ServiceConnection notificationServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             NotificationService.NotificationServiceBinder notificationServiceBinder = (NotificationService.NotificationServiceBinder) service;
             notificationService = notificationServiceBinder.getService();
+            loginFragment.setDeviceUuid(notificationService.getDeviceUuid());
         }
 
         @Override
@@ -60,33 +50,17 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        bindChatService();
         bindNotificationService();
         FirebaseService.createChannelAndHandleNotifications(getApplicationContext());
-    }
-
-    public ChatService getChatService() {
-        return chatService;
     }
 
     public NotificationService getNotificationService() {
         return notificationService;
     }
 
-    public void bindChatService() {
-        Intent intent = new Intent(this, SignalRChatService.class);
-        bindService(intent, chatServiceConnection, Context.BIND_AUTO_CREATE);
-    }
-
     public void bindNotificationService() {
         Intent intent = new Intent(this, NotificationService.class);
         bindService(intent, notificationServiceConnection, Context.BIND_AUTO_CREATE);
-    }
-
-    @Override
-    public void onBackPressed() {
-        chatService.expireSession(false);
-        super.onBackPressed();
     }
 
     @Override
@@ -113,12 +87,7 @@ public class MainActivity extends AppCompatActivity {
         isVisible = false;
     }
 
-    public void ToastNotify(final String notificationMessage) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(MainActivity.this, notificationMessage, Toast.LENGTH_LONG).show();
-            }
-        });
+    public void setLoginFragment(LoginFragment loginFragment) {
+        this.loginFragment = loginFragment;
     }
 }
