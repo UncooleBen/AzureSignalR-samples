@@ -1,7 +1,5 @@
 package com.microsoft.signalr.androidchatroom.presenter;
 
-import androidx.fragment.app.Fragment;
-
 import com.microsoft.signalr.androidchatroom.model.BaseModel;
 import com.microsoft.signalr.androidchatroom.view.BaseFragment;
 

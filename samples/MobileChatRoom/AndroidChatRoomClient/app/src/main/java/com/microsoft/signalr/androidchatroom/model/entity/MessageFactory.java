@@ -122,51 +122,24 @@ public class MessageFactory {
         String payload = jsonObject.get("Payload").getAsString();
         boolean isImage = jsonObject.get("IsImage").getAsBoolean();
         boolean isRead = jsonObject.get("IsRead").getAsBoolean();
+        int rawType = jsonObject.get("Type").getAsInt();
+        boolean isSelf = sender.equals(sessionUser);
+        boolean isPrivate = rawType == 0;
         long time;
         try {
             time = sdf.parse(jsonObject.get("SendTime").getAsString()).getTime() + utcOffset;
         } catch (Exception e) {
             time = 0;
         }
-        int messageType;
-        int rawType = jsonObject.get("Type").getAsInt();
-        if (isImage) {
-            if (rawType == 0) {
-                if (sender.equals(sessionUser)) {
-                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.PRIVATE, MessageTypeConstant.IMAGE, MessageTypeConstant.SENT);
-                } else {
-                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.PRIVATE, MessageTypeConstant.IMAGE, MessageTypeConstant.RECEIVED);
-                }
-            } else {
-                if (sender.equals(sessionUser)) {
-                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.BROADCAST, MessageTypeConstant.IMAGE, MessageTypeConstant.SENT);
-                } else {
-                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.BROADCAST, MessageTypeConstant.IMAGE, MessageTypeConstant.RECEIVED);
-                }
-            }
-        } else {
-            if (rawType == 0) {
-                if (sender.equals(sessionUser)) {
-                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.PRIVATE, MessageTypeConstant.TEXT, MessageTypeConstant.SENT);
-                } else {
-                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.PRIVATE, MessageTypeConstant.TEXT, MessageTypeConstant.RECEIVED);
-                }
-            } else {
-                if (sender.equals(sessionUser)) {
-                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.BROADCAST, MessageTypeConstant.TEXT, MessageTypeConstant.SENT);
-                } else {
-                    messageType = MessageTypeUtils.calculateMessageType(MessageTypeConstant.BROADCAST, MessageTypeConstant.TEXT, MessageTypeConstant.RECEIVED);
-                }
-            }
-        }
+
+        int messageType = MessageTypeUtils.calculateMessageType(isImage, isSelf, isPrivate, isRead);
+
         Message message = new Message(messageId, messageType);
         message.setSender(sender);
         message.setReceiver(receiver);
         message.setPayload(payload);
         message.setTime(time);
-        if (isRead) {
-            message.setMessageType(MessageTypeUtils.setStatus(message.getMessageType(), MessageTypeConstant.READ));
-        }
+
         return message;
     }
 

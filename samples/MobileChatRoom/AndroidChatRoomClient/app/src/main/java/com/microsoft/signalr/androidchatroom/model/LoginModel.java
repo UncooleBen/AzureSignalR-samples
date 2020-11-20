@@ -1,6 +1,5 @@
 package com.microsoft.signalr.androidchatroom.model;
 
-import com.microsoft.signalr.HubConnection;
 import com.microsoft.signalr.androidchatroom.contract.LoginContract;
 import com.microsoft.signalr.androidchatroom.model.param.LoginParam;
 import com.microsoft.signalr.androidchatroom.presenter.LoginPresenter;
@@ -14,7 +13,7 @@ import io.reactivex.schedulers.Schedulers;
 
 public class LoginModel extends BaseModel implements LoginContract.Model {
 
-    private LoginPresenter mLoginPresenter;
+    private final LoginPresenter mLoginPresenter;
 
     public LoginModel(LoginPresenter loginPresenter) {
         mLoginPresenter = loginPresenter;
@@ -24,27 +23,27 @@ public class LoginModel extends BaseModel implements LoginContract.Model {
     @Override
     public void login(LoginParam loginParam, SimpleCallback<String> callback) {
         SignalRService.login(loginParam)
-                      .subscribeOn(Schedulers.io())
-                      .observeOn(Schedulers.io())
-                      .subscribe(new SingleObserver<String>() {
-                          @Override
-                          public void onSubscribe(@NonNull Disposable d) {
+                .subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.io())
+                .subscribe(new SingleObserver<String>() {
+                    @Override
+                    public void onSubscribe(@NonNull Disposable d) {
 
-                          }
+                    }
 
-                          @Override
-                          public void onSuccess(@NonNull String s) {
-                              // Callback on presenter
-                              callback.onSuccess(s);
+                    @Override
+                    public void onSuccess(@NonNull String s) {
+                        // Callback on presenter
+                        callback.onSuccess(s);
 
-                              // Start timer in service
-                              SignalRService.startReconnectTimer();
-                          }
+                        // Start timer in service
+                        SignalRService.startReconnectTimer();
+                    }
 
-                          @Override
-                          public void onError(@NonNull Throwable e) {
-                              callback.onError(e.getMessage());
-                          }
-                      });
+                    @Override
+                    public void onError(@NonNull Throwable e) {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 }

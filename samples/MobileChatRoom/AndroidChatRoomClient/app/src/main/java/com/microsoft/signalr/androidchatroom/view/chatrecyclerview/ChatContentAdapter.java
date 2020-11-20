@@ -1,6 +1,5 @@
 package com.microsoft.signalr.androidchatroom.view.chatrecyclerview;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -11,11 +10,10 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.microsoft.signalr.androidchatroom.R;
-import com.microsoft.signalr.androidchatroom.presenter.ChatPresenter;
-import com.microsoft.signalr.androidchatroom.util.MessageTypeUtils;
-import com.microsoft.signalr.androidchatroom.view.ChatFragment;
 import com.microsoft.signalr.androidchatroom.model.entity.Message;
 import com.microsoft.signalr.androidchatroom.model.entity.MessageTypeConstant;
+import com.microsoft.signalr.androidchatroom.presenter.ChatPresenter;
+import com.microsoft.signalr.androidchatroom.view.ChatFragment;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -28,6 +26,8 @@ public class ChatContentAdapter extends RecyclerView.Adapter<ChatContentViewHold
 
     private static final int READ_IMAGE_PRIVATE_MESSAGE_VIEW = MessageTypeConstant.READ | MessageTypeConstant.IMAGE | MessageTypeConstant.PRIVATE;
     private static final int READ_TEXT_PRIVATE_MESSAGE_VIEW = MessageTypeConstant.READ | MessageTypeConstant.TEXT | MessageTypeConstant.PRIVATE;
+    private static final int READ_TEXT_BROADCAST_MESSAGE_VIEW = MessageTypeConstant.READ | MessageTypeConstant.TEXT | MessageTypeConstant.BROADCAST;
+    private static final int READ_IMAGE_BROADCAST_MESSAGE_VIEW = MessageTypeConstant.READ | MessageTypeConstant.TEXT | MessageTypeConstant.IMAGE;
     private static final int RECEIVED_IMAGE_BROADCAST_MESSAGE_VIEW = MessageTypeConstant.RECEIVED | MessageTypeConstant.IMAGE | MessageTypeConstant.BROADCAST;
     private static final int RECEIVED_IMAGE_PRIVATE_MESSAGE_VIEW = MessageTypeConstant.RECEIVED | MessageTypeConstant.IMAGE | MessageTypeConstant.PRIVATE;
     private static final int RECEIVED_TEXT_BROADCAST_MESSAGE_VIEW = MessageTypeConstant.RECEIVED | MessageTypeConstant.TEXT | MessageTypeConstant.BROADCAST;
@@ -41,21 +41,17 @@ public class ChatContentAdapter extends RecyclerView.Adapter<ChatContentViewHold
     private static final int SENT_IMAGE_PRIVATE_MESSAGE_VIEW = MessageTypeConstant.SENT | MessageTypeConstant.IMAGE | MessageTypeConstant.PRIVATE;
     private static final int SENT_TEXT_BROADCAST_MESSAGE_VIEW = MessageTypeConstant.SENT | MessageTypeConstant.TEXT | MessageTypeConstant.BROADCAST;
     private static final int SENT_TEXT_PRIVATE_MESSAGE_VIEW = MessageTypeConstant.SENT | MessageTypeConstant.TEXT | MessageTypeConstant.PRIVATE;
-
+    private static final int TIMEOUT_IMAGE_PRIVATE_MESSAGE_VIEW = MessageTypeConstant.TIMEOUT | MessageTypeConstant.IMAGE | MessageTypeConstant.PRIVATE;
+    private static final int TIMEOUT_TEXT_PRIVATE_MESSAGE_VIEW = MessageTypeConstant.TIMEOUT | MessageTypeConstant.TEXT | MessageTypeConstant.PRIVATE;
+    private static final int TIMEOUT_TEXT_BROADCAST_MESSAGE_VIEW = MessageTypeConstant.TIMEOUT | MessageTypeConstant.TEXT | MessageTypeConstant.BROADCAST;
+    private static final int TIMEOUT_IMAGE_BROADCAST_MESSAGE_VIEW = MessageTypeConstant.TIMEOUT | MessageTypeConstant.TEXT | MessageTypeConstant.IMAGE;
     private final ChatFragment mChatFragment;
     private final ChatPresenter mChatPresenter;
-
-
-    private final Context context;
+    private final SimpleDateFormat sdf = new SimpleDateFormat("MM/dd hh:mm:ss", Locale.US);
     private List<Message> messages;
 
-
-    // Used for datetime formatting
-    private final SimpleDateFormat sdf = new SimpleDateFormat("MM/dd hh:mm:ss", Locale.US);
-
-    public ChatContentAdapter(List<Message> messages, Context context, ChatFragment chatFragment, ChatPresenter chatPresenter) {
+    public ChatContentAdapter(List<Message> messages, ChatFragment chatFragment, ChatPresenter chatPresenter) {
         this.messages = messages;
-        this.context = context;
         mChatFragment = chatFragment;
         mChatPresenter = chatPresenter;
     }
@@ -72,20 +68,26 @@ public class ChatContentAdapter extends RecyclerView.Adapter<ChatContentViewHold
         switch (viewType) {
             case SENDING_TEXT_BROADCAST_MESSAGE_VIEW:
             case SENT_TEXT_BROADCAST_MESSAGE_VIEW:
+            case READ_TEXT_BROADCAST_MESSAGE_VIEW:
+            case TIMEOUT_TEXT_BROADCAST_MESSAGE_VIEW:
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_self_text_broadcast_message, parent, false);
                 break;
             case SENDING_TEXT_PRIVATE_MESSAGE_VIEW:
             case SENT_TEXT_PRIVATE_MESSAGE_VIEW:
             case READ_TEXT_PRIVATE_MESSAGE_VIEW:
+            case TIMEOUT_TEXT_PRIVATE_MESSAGE_VIEW:
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_self_text_private_message, parent, false);
                 break;
             case SENDING_IMAGE_BROADCAST_MESSAGE_VIEW:
             case SENT_IMAGE_BROADCAST_MESSAGE_VIEW:
+            case READ_IMAGE_BROADCAST_MESSAGE_VIEW:
+            case TIMEOUT_IMAGE_BROADCAST_MESSAGE_VIEW:
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_self_image_broadcast_message, parent, false);
                 break;
             case SENDING_IMAGE_PRIVATE_MESSAGE_VIEW:
             case SENT_IMAGE_PRIVATE_MESSAGE_VIEW:
             case READ_IMAGE_PRIVATE_MESSAGE_VIEW:
+            case TIMEOUT_IMAGE_PRIVATE_MESSAGE_VIEW:
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_self_image_private_message, parent, false);
                 break;
             case RECEIVED_TEXT_BROADCAST_MESSAGE_VIEW:
@@ -113,14 +115,14 @@ public class ChatContentAdapter extends RecyclerView.Adapter<ChatContentViewHold
     public void onBindViewHolder(@NonNull ChatContentViewHolder viewHolder, int position) {
         Message message = messages.get(position);
 
-        // System message directly set content and return
         if ((message.getMessageType() & MessageTypeConstant.MESSAGE_TYPE_MASK) == MessageTypeConstant.SYSTEM) {
+            // Set system message content text
             viewHolder.systemMessageContent.setText(message.getPayload());
+            // System message only contains a string payload; Directly return
             return;
         }
 
         // General chat message components
-        Log.d(TAG, message.getPayload());
         viewHolder.messageSender.setText(message.getSender());
         viewHolder.messageTime.setText(sdf.format(new Date(message.getTime())));
 
@@ -133,7 +135,7 @@ public class ChatContentAdapter extends RecyclerView.Adapter<ChatContentViewHold
             Bitmap bmp = message.getBmp();
             int[] resized = resizeImage(bmp.getWidth(), bmp.getHeight(), 400);
             viewHolder.messageImageContent.setImageBitmap(Bitmap.createScaledBitmap(bmp, resized[0], resized[1], false));
-        } else if (((message.getMessageType() & MessageTypeConstant.MESSAGE_CONTENT_MASK) == MessageTypeConstant.TEXT) && message.getBmp() == null) {
+        } else if (((message.getMessageType() & MessageTypeConstant.MESSAGE_CONTENT_MASK) == MessageTypeConstant.IMAGE) && message.getBmp() == null) {
             viewHolder.messageImageContent.setImageResource(R.drawable.ic_ready_to_pull);
             // Image content need to load
             if (message.getBmp() == null) {
@@ -147,7 +149,7 @@ public class ChatContentAdapter extends RecyclerView.Adapter<ChatContentViewHold
             }
         }
 
-        // Different types of message status
+        // Different message status
         switch (message.getMessageType() & MessageTypeConstant.MESSAGE_STATUS_MASK) {
             case MessageTypeConstant.SENDING:
                 viewHolder.statusTextView.setText(R.string.message_sending);
@@ -163,15 +165,17 @@ public class ChatContentAdapter extends RecyclerView.Adapter<ChatContentViewHold
                 });
                 break;
             case MessageTypeConstant.SENT:
-                if ((message.getMessageType() & MessageTypeConstant.MESSAGE_TYPE_MASK) == MessageTypeConstant.PRIVATE) {
-                    Log.d("unread sent private message:", message.getPayload());
+                if ((message.getMessageType() & MessageTypeConstant.MESSAGE_TYPE_MASK) == MessageTypeConstant.PRIVATE &&
+                        position == messages.size() - 1) {
+                    // Only last private message need to show SENT status
                     viewHolder.statusTextView.setText(R.string.message_sent);
-                } else if ((message.getMessageType() & MessageTypeConstant.MESSAGE_TYPE_MASK) == MessageTypeConstant.BROADCAST) {
-                    viewHolder.statusTextView.setText("");
+                } else {
+                    viewHolder.statusTextView.setText(R.string.message_empty);
                 }
                 break;
             case MessageTypeConstant.READ:
-                if (true) {//TODO
+                if ((message.getMessageType() & MessageTypeConstant.MESSAGE_TYPE_MASK) == MessageTypeConstant.PRIVATE &&
+                        position == messages.size() - 1) {
                     viewHolder.statusTextView.setText(R.string.message_read);
                 } else {
                     viewHolder.statusTextView.setText(R.string.message_empty);
@@ -201,4 +205,5 @@ public class ChatContentAdapter extends RecyclerView.Adapter<ChatContentViewHold
         }
         return new int[]{width, height};
     }
+
 }

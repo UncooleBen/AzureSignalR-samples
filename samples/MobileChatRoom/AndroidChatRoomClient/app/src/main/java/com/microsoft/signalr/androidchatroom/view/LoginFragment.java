@@ -11,20 +11,15 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.microsoft.signalr.androidchatroom.R;
 import com.microsoft.signalr.androidchatroom.activity.MainActivity;
 import com.microsoft.signalr.androidchatroom.contract.LoginContract;
-import com.microsoft.signalr.androidchatroom.model.LoginModel;
-import com.microsoft.signalr.androidchatroom.presenter.BasePresenter;
 import com.microsoft.signalr.androidchatroom.presenter.LoginPresenter;
 import com.microsoft.signalr.androidchatroom.service.NotificationService;
 import com.microsoft.signalr.androidchatroom.service.SignalRService;
 import com.microsoft.signalr.androidchatroom.util.SimpleCallback;
-
-import org.jetbrains.annotations.NotNull;
 
 public class LoginFragment extends BaseFragment implements LoginContract.View {
     private static final String TAG = "LoginFragment";
@@ -82,24 +77,35 @@ public class LoginFragment extends BaseFragment implements LoginContract.View {
         super.onViewCreated(view, savedInstanceState);
 
         mLoginButton.setClickable(false);
-
-        SignalRService.startHubConnection(new SimpleCallback<String>() {
-            @Override
-            public void onSuccess(String s) {
-                if (mLoginButton != null && mUsernameTextView != null) {
-                    mLoginButton.setOnClickListener(
-                            (v) -> {
+        if (mLoginButton != null && mUsernameTextView != null) {
+            mLoginButton.setOnClickListener(
+                    (v) -> {
+                        mLoginButton.setClickable(false);
+                        mLoginButton.setText(R.string.connecting);
+                        SignalRService.startHubConnection(new SimpleCallback<String>() {
+                            @Override
+                            public void onSuccess(String s) {
                                 if (!isLogging && mUsernameTextView.getText().toString().length() > 0) {
                                     isLogging = true;
                                     username = mUsernameTextView.getText().toString();
                                     mLoginPresenter.login(username, deviceUuid);
                                 }
                             }
-                    );
-                    mLoginButton.setClickable(true);
-                }
-            }
-        });
+
+                            @Override
+                            public void onError(String errorMessage) {
+                                Log.e(TAG, errorMessage);
+                                requireActivity().runOnUiThread(() -> {
+                                    mLoginButton.setClickable(true);
+                                    mLoginButton.setText(R.string.login);
+                                });
+                            }
+                        });
+                    }
+            );
+            mLoginButton.setClickable(true);
+        }
+
     }
 
     @Override

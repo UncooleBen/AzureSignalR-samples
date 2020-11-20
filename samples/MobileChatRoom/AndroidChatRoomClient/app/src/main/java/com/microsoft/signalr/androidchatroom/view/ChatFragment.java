@@ -1,6 +1,7 @@
 package com.microsoft.signalr.androidchatroom.view;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -21,26 +22,23 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.microsoft.signalr.androidchatroom.R;
+import com.microsoft.signalr.androidchatroom.activity.MainActivity;
 import com.microsoft.signalr.androidchatroom.contract.ChatContract;
+import com.microsoft.signalr.androidchatroom.model.entity.Message;
 import com.microsoft.signalr.androidchatroom.presenter.ChatPresenter;
 import com.microsoft.signalr.androidchatroom.view.chatrecyclerview.ChatContentAdapter;
-import com.microsoft.signalr.androidchatroom.model.entity.Message;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 
 import static android.app.Activity.RESULT_OK;
 
 public class ChatFragment extends BaseFragment implements ChatContract.View {
-    private static final String TAG = "ChatFragment";
     public static final int RESULT_LOAD_IMAGE = 1;
-
+    private static final String TAG = "ChatFragment";
     private ChatPresenter mChatPresenter;
 
-
-    private List<Message> messages = new ArrayList<>();
     private String username;
     private String deviceUuid;
 
@@ -54,15 +52,14 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
     private LinearLayoutManager layoutManager;
 
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        ((MainActivity) context).setChatFragment(this);
     }
 
     @Override
-    public View onCreateView(
-            LayoutInflater inflater, ViewGroup container,
-            Bundle savedInstanceState
-    ) {
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         // Get passed username
         if ((username = getArguments().getString("username")) == null) {
             username = "EMPTY_PLACEHOLDER";
@@ -71,7 +68,13 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
         if ((deviceUuid = getArguments().getString("deviceUuid")) == null) {
             deviceUuid = "EMPTY_PLACEHOLDER";
         }
+    }
 
+    @Override
+    public View onCreateView(
+            LayoutInflater inflater, ViewGroup container,
+            Bundle savedInstanceState
+    ) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_chat, container, false);
 
@@ -84,16 +87,14 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
 
         // Create objects
         mChatPresenter = new ChatPresenter(this, username, deviceUuid);
-        this.chatContentAdapter = new ChatContentAdapter(messages, getContext(), this, mChatPresenter);
-        this.layoutManager = new LinearLayoutManager(this.getActivity());
-
-        // Configure RecyclerView
-        configureRecyclerView();
 
         return view;
     }
 
-    private void configureRecyclerView() {
+    public void configureRecyclerView(List<Message> messages, ChatPresenter chatPresenter) {
+        chatContentAdapter = new ChatContentAdapter(messages, this, chatPresenter);
+        layoutManager = new LinearLayoutManager(this.getActivity());
+
         // Add append new messages to end (bottom)
         layoutManager.setStackFromEnd(true);
 
@@ -111,7 +112,7 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
                 super.onScrolled(recyclerView, dx, dy);
                 if (!recyclerView.canScrollVertically(-1)) {
                     Log.d(TAG, "OnScroll cannot scroll vertical -1");
-                    mChatPresenter.pullHistoryMessages();
+                    mChatPresenter.pullHistoryMessages(0);
                 }
             }
         });
@@ -126,9 +127,7 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
 
     @Override
     public void setMessages(List<Message> messages, int direction) {
-        this.messages = messages;
-
-        updateRecyclerView(false, direction);
+        updateRecyclerView(messages, direction);
     }
 
     @Override
@@ -185,26 +184,11 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
         startActivityForResult(photoPickerIntent, ChatFragment.RESULT_LOAD_IMAGE);
     }
 
-    // TODO
-    private void resendButtonOnClickListener(View view) {
-        Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
-        photoPickerIntent.setType("image/*");
-        startActivityForResult(photoPickerIntent, ChatFragment.RESULT_LOAD_IMAGE);
+    public void onBackPressed() {
+        mChatPresenter.requestLogout(false);
     }
 
-    // TODO
-    private void contentButtonOnClickListener(View view) {
-        Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
-        photoPickerIntent.setType("image/*");
-        startActivityForResult(photoPickerIntent, ChatFragment.RESULT_LOAD_IMAGE);
-    }
-
-    public void updateRecyclerView(boolean sortMessageList, int direction) {
-        // Sort by send time first
-        if (sortMessageList) {
-            messages.sort((m1, m2) -> (int) (m1.getTime() - m2.getTime()));
-        }
-
+    public void updateRecyclerView(List<Message> messages, int direction) {
         chatContentAdapter.setMessages(messages);
 
         // Then refresh the UiThread
@@ -212,11 +196,9 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
             chatContentAdapter.notifyDataSetChanged();
             switch (direction) {
                 case 1:
-                    Log.d(TAG, "Finger swipe up" + (messages.size() - 1));
                     chatContentRecyclerView.scrollToPosition(messages.size() - 1);
                     break;
                 case -1:
-                    Log.d(TAG, "Finger swipe down");
                     chatContentRecyclerView.scrollToPosition(0);
                     break;
                 default:

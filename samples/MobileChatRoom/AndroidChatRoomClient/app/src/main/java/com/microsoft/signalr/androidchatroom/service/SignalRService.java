@@ -9,17 +9,13 @@ import com.microsoft.signalr.Action7;
 import com.microsoft.signalr.HubConnection;
 import com.microsoft.signalr.HubConnectionBuilder;
 import com.microsoft.signalr.HubConnectionState;
-import com.microsoft.signalr.androidchatroom.model.entity.Message;
 import com.microsoft.signalr.androidchatroom.model.param.LoginParam;
 import com.microsoft.signalr.androidchatroom.util.SimpleCallback;
 
-
 import org.jetbrains.annotations.NotNull;
-
 
 import java.util.Timer;
 import java.util.TimerTask;
-
 
 import io.reactivex.CompletableObserver;
 import io.reactivex.Single;
@@ -44,25 +40,29 @@ public class SignalRService {
             synchronized (SignalRService.class) {
                 if (hubConnection == null) {
                     hubConnection = HubConnectionBuilder.create(serverUrl).build();
-                    hubConnection.start().subscribeOn(Schedulers.io())
-                                        .subscribe(new CompletableObserver() {
-                                            @Override
-                                            public void onSubscribe(@NonNull Disposable d) {
-
-                                            }
-
-                                            @Override
-                                            public void onComplete() {
-                                                callback.onSuccess("");
-                                            }
-
-                                            @Override
-                                            public void onError(@NonNull Throwable e) {
-
-                                            }
-                                        });
                 }
             }
+        }
+        if (hubConnection.getConnectionState() != HubConnectionState.CONNECTED) {
+            hubConnection.start().subscribeOn(Schedulers.io())
+                    .subscribe(new CompletableObserver() {
+                        @Override
+                        public void onSubscribe(@NonNull Disposable d) {
+
+                        }
+
+                        @Override
+                        public void onComplete() {
+                            callback.onSuccess("");
+                        }
+
+                        @Override
+                        public void onError(@NonNull Throwable e) {
+                            callback.onError(e.getMessage());
+                        }
+                    });
+        } else {
+            callback.onSuccess("");
         }
     }
 
@@ -81,7 +81,7 @@ public class SignalRService {
 
                 @Override
                 public void onError(@NotNull Throwable e) {
-                    Log.e("SignalRService", e.toString());
+                    Log.e(TAG, e.toString());
                 }
             });
         } else {
@@ -125,11 +125,10 @@ public class SignalRService {
         }, 0, 5000);
     }
 
-    public static Single<String> logout() {
+    public static void logout() {
         if (hubConnection.getConnectionState() == HubConnectionState.CONNECTED) {
-            return hubConnection.invoke(String.class, "LeaveChatRoom", deviceUuid, username);
+            hubConnection.send("LeaveChatRoom", deviceUuid, username);
         }
-        return null;
     }
 
     public static void sendBroadcastMessage(String messageId, String sender, String payload, boolean isImage) {
@@ -143,8 +142,8 @@ public class SignalRService {
     public static void sendPrivateMessage(String messageId, String sender, String receiver, String payload, boolean isImage) {
         Log.d(TAG, "sendPrivateMessage");
         if (hubConnection.getConnectionState() == HubConnectionState.CONNECTED) {
-                hubConnection.send("OnPrivateMessageReceived",
-                        messageId, sender, receiver, payload, isImage);
+            hubConnection.send("OnPrivateMessageReceived",
+                    messageId, sender, receiver, payload, isImage);
         }
     }
 
@@ -165,6 +164,7 @@ public class SignalRService {
             hubConnection.send("OnPullHistoryMessagesReceived", username, untilTimeInLong);
         }
     }
+
     public static void pullImageContent(String messageId) {
         if (hubConnection.getConnectionState() == HubConnectionState.CONNECTED) {
             hubConnection.send("OnPullImageContentReceived", username, messageId);

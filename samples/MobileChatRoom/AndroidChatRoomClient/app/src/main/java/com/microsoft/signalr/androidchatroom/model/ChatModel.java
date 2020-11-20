@@ -8,14 +8,8 @@ import com.microsoft.signalr.androidchatroom.model.entity.Message;
 import com.microsoft.signalr.androidchatroom.model.entity.MessageFactory;
 import com.microsoft.signalr.androidchatroom.presenter.ChatPresenter;
 import com.microsoft.signalr.androidchatroom.service.SignalRService;
-import com.microsoft.signalr.androidchatroom.util.SimpleCallback;
 
 import java.util.List;
-
-import io.reactivex.SingleObserver;
-import io.reactivex.annotations.NonNull;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
 
 public class ChatModel extends BaseModel implements ChatContract.Model {
 
@@ -60,26 +54,8 @@ public class ChatModel extends BaseModel implements ChatContract.Model {
     }
 
     @Override
-    public void logout(SimpleCallback<String> callback) {
-        SignalRService.logout()
-                .subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.io())
-                .subscribe(new SingleObserver<String>() {
-                    @Override
-                    public void onSubscribe(@NonNull Disposable d) {
-
-                    }
-
-                    @Override
-                    public void onSuccess(@NonNull String s) {
-                        callback.onSuccess(s);
-                    }
-
-                    @Override
-                    public void onError(@NonNull Throwable e) {
-                        callback.onError(e.getMessage());
-                    }
-                });
+    public void logout() {
+        SignalRService.logout();
     }
 
     private void registerServerCallbacks() {
@@ -114,7 +90,7 @@ public class ChatModel extends BaseModel implements ChatContract.Model {
         // Create message
         Message chatMessage;
         if (isImage) {
-            chatMessage = MessageFactory.createReceivedImageBroadcastMessage(messageId, sender, payload,sendTime);
+            chatMessage = MessageFactory.createReceivedImageBroadcastMessage(messageId, sender, payload, sendTime);
         } else {
             chatMessage = MessageFactory.createReceivedTextBroadcastMessage(messageId, sender, payload, sendTime);
         }
@@ -129,7 +105,7 @@ public class ChatModel extends BaseModel implements ChatContract.Model {
         // Create message
         Message chatMessage;
         if (isImage) {
-            chatMessage = MessageFactory.createReceivedImagePrivateMessage(messageId, sender, receiver, payload,sendTime);
+            chatMessage = MessageFactory.createReceivedImagePrivateMessage(messageId, sender, receiver, payload, sendTime);
         } else {
             chatMessage = MessageFactory.createReceivedTextPrivateMessage(messageId, sender, receiver, payload, sendTime);
         }
@@ -139,6 +115,7 @@ public class ChatModel extends BaseModel implements ChatContract.Model {
     }
 
     private void receiveImageContent(String messageId, String payload) {
+        Log.d(TAG, "receiveImageContent");
         Bitmap bmp = MessageFactory.decodeToBitmap(payload);
         mChatPresenter.receiveImageContent(messageId, bmp);
     }
@@ -158,6 +135,6 @@ public class ChatModel extends BaseModel implements ChatContract.Model {
     }
 
     private void expireSession(boolean isForced) {
-        mChatPresenter.logout(isForced);
+        mChatPresenter.confirmLogout(isForced);
     }
- }
+}

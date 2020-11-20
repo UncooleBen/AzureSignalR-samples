@@ -2,21 +2,19 @@ package com.microsoft.signalr.androidchatroom.activity;
 
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.fragment.app.FragmentManager;
 
 import com.microsoft.signalr.androidchatroom.R;
-import com.microsoft.signalr.androidchatroom.service.NotificationService;
 import com.microsoft.signalr.androidchatroom.service.FirebaseService;
+import com.microsoft.signalr.androidchatroom.service.NotificationService;
 import com.microsoft.signalr.androidchatroom.view.ChatFragment;
 import com.microsoft.signalr.androidchatroom.view.LoginFragment;
-
-import android.content.Intent;
-import android.os.IBinder;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
@@ -27,7 +25,6 @@ public class MainActivity extends AppCompatActivity {
     private NotificationService notificationService;
 
     private LoginFragment loginFragment;
-
     private final ServiceConnection notificationServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -41,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
             notificationService = null;
         }
     };
+    private ChatFragment chatFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         bindNotificationService();
-        FirebaseService.createChannelAndHandleNotifications(getApplicationContext());
+        FirebaseService.createNotificationChannel(getApplicationContext());
     }
 
     public NotificationService getNotificationService() {
@@ -61,6 +59,15 @@ public class MainActivity extends AppCompatActivity {
     public void bindNotificationService() {
         Intent intent = new Intent(this, NotificationService.class);
         bindService(intent, notificationServiceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (chatFragment != null) {
+            chatFragment.onBackPressed();
+            chatFragment = null;
+        }
+        super.onBackPressed();
     }
 
     @Override
@@ -89,5 +96,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void setLoginFragment(LoginFragment loginFragment) {
         this.loginFragment = loginFragment;
+    }
+
+    public void setChatFragment(ChatFragment chatFragment) {
+        this.chatFragment = chatFragment;
     }
 }

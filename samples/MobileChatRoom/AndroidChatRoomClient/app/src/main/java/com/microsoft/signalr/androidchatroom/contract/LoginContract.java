@@ -11,6 +11,7 @@ public interface LoginContract {
 
     interface View {
         void setLogin(String isSuccess);
+
         void setDeviceUuid(String deviceUuid);
     }
 
