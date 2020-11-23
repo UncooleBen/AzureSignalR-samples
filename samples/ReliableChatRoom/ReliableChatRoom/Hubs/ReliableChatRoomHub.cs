@@ -86,7 +86,7 @@ namespace Microsoft.Azure.SignalR.Samples.ReliableChatRoom.Hubs
         /// <param name="deviceUuid">A random id of client device, used for notification service (may be a new id)</param>
         /// <param name="username">The username of client</param>
         /// <returns></returns>
-        public async Task LeaveChatRoom(string deviceUuid, string username)
+        public async Task<string> LeaveChatRoom(string deviceUuid, string username)
         {
             Console.WriteLine("LeaveChatRoom username: {0}", username);
 
@@ -98,6 +98,8 @@ namespace Microsoft.Azure.SignalR.Samples.ReliableChatRoom.Hubs
             
             //  Do not store system messages. Directly send them out.
             await SendSystemMessage(logoutMessage);
+
+            return "success";
         }
 
         /// <summary>
