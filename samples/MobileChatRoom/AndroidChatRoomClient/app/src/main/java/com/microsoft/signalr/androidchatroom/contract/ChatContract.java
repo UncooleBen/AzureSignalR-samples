@@ -3,9 +3,12 @@ package com.microsoft.signalr.androidchatroom.contract;
 import android.graphics.Bitmap;
 
 import com.microsoft.signalr.androidchatroom.model.entity.Message;
+import com.microsoft.signalr.androidchatroom.util.SimpleCallback;
 
 import java.util.List;
 
+// Contract for chatting functions
+// Defined in MVP (Model-View-Presenter) Pattern
 public interface ChatContract {
     interface Presenter {
         // Called by View
@@ -20,6 +23,8 @@ public interface ChatContract {
         void pullHistoryMessages(int callbackDirection);
 
         void pullImageContent(String messageId);
+
+        void saveHistoryMessages();
 
         void requestLogout(boolean isForced);
 

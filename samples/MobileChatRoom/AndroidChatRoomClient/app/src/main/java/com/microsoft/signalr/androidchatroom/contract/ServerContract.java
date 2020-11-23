@@ -1,5 +1,6 @@
 package com.microsoft.signalr.androidchatroom.contract;
 
+// Define server callbacks
 public interface ServerContract {
 
     void receiveSystemMessage(String messageId, String payload, long sendTime);

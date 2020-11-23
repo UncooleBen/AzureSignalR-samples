@@ -1,8 +1,13 @@
 package com.microsoft.signalr.androidchatroom.presenter;
 
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.util.Log;
 
+import com.google.gson.Gson;
+import com.microsoft.signalr.androidchatroom.R;
 import com.microsoft.signalr.androidchatroom.contract.ChatContract;
 import com.microsoft.signalr.androidchatroom.model.ChatModel;
 import com.microsoft.signalr.androidchatroom.model.entity.Message;
@@ -11,6 +16,8 @@ import com.microsoft.signalr.androidchatroom.model.entity.MessageTypeConstant;
 import com.microsoft.signalr.androidchatroom.util.MessageTypeUtils;
 import com.microsoft.signalr.androidchatroom.util.SimpleCallback;
 import com.microsoft.signalr.androidchatroom.view.ChatFragment;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +55,7 @@ public class ChatPresenter extends BasePresenter<ChatFragment, ChatModel> implem
             }
         }, 0, 10000);
 
-        mBaseModel.pullHistoryMessages(calculateUntilTime());
+        restoreOrPullHistoryMessages();
     }
 
     private void timeout() {
@@ -69,6 +76,29 @@ public class ChatPresenter extends BasePresenter<ChatFragment, ChatModel> implem
         }
     }
 
+    private void restoreOrPullHistoryMessages() {
+        Context context = mBaseFragment.getContext();
+        SharedPreferences sharedPreferences = context.getSharedPreferences(context.getString(R.string.saved_messages_key), Context.MODE_PRIVATE);
+        String storedJsonMessages = sharedPreferences.getString(context.getString(R.string.saved_messages_key), null);
+        if (storedJsonMessages == null || "[]".equals(storedJsonMessages)) {
+            // Pull History Messages
+            Log.d(TAG, "First Login: Pulling History messages.");
+            mBaseModel.pullHistoryMessages(calculateUntilTime());
+        } else {
+            // Restore History Messages
+            Log.d(TAG, "First Login: Restoring history messages.");
+            List<Message> historyMessages = MessageFactory.parseHistoryMessages(storedJsonMessages, username);
+            mBaseFragment.setMessages(historyMessages, 1);
+        }
+    }
+
+    @Override
+    public void saveHistoryMessages() {
+        Context context = mBaseFragment.getContext();
+        SharedPreferences sharedPreferences = context.getSharedPreferences(context.getString(R.string.saved_messages_key), Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(context.getString(R.string.saved_messages_key), MessageFactory.serializeHistoryMessages(messages)).apply();
+    }
 
     @Override
     public void sendTextMessage(String sender, String receiver, String payload) {
@@ -214,7 +244,7 @@ public class ChatPresenter extends BasePresenter<ChatFragment, ChatModel> implem
 
 
     @Override
-    public void addMessage(Message message) {
+    public void addMessage(@NotNull Message message) {
         // Check for duplicated message
         boolean isDuplicateMessage = checkForDuplicatedMessage(message.getMessageId());
 
@@ -229,9 +259,8 @@ public class ChatPresenter extends BasePresenter<ChatFragment, ChatModel> implem
         // Sort messages by send time
         messages.sort((m1, m2) -> (int) (m1.getTime() - m2.getTime()));
 
-
         // Set view messages
-        mBaseFragment.setMessages(messages, 0);
+        mBaseFragment.setMessages(messages, 1);
     }
 
     @Override

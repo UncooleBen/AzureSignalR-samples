@@ -20,17 +20,23 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
     public static MainActivity mainActivity;
+    
+    // Used for notification display
+    // Display notification when MainActivity is not visible
     public static Boolean isVisible = false;
 
-    private NotificationService notificationService;
+    // View components
+    private LoginFragment mLoginFragment;
+    private ChatFragment mChatFragment;
 
-    private LoginFragment loginFragment;
+    // Notification service and service connection
+    private NotificationService notificationService;
     private final ServiceConnection notificationServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             NotificationService.NotificationServiceBinder notificationServiceBinder = (NotificationService.NotificationServiceBinder) service;
             notificationService = notificationServiceBinder.getService();
-            loginFragment.setDeviceUuid(notificationService.getDeviceUuid());
+            mLoginFragment.setDeviceUuid(notificationService.getDeviceUuid());
         }
 
         @Override
@@ -38,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
             notificationService = null;
         }
     };
-    private ChatFragment chatFragment;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,9 +69,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (chatFragment != null) {
-            chatFragment.onBackPressed();
-            chatFragment = null;
+        // If back pressed, manually logout user
+        if (mChatFragment != null) {
+            mChatFragment.onBackPressed();
+            mChatFragment = null;
         }
         super.onBackPressed();
     }
@@ -95,10 +102,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void setLoginFragment(LoginFragment loginFragment) {
-        this.loginFragment = loginFragment;
+        this.mLoginFragment = loginFragment;
     }
 
     public void setChatFragment(ChatFragment chatFragment) {
-        this.chatFragment = chatFragment;
+        this.mChatFragment = chatFragment;
     }
 }

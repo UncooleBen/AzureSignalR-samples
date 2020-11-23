@@ -8,14 +8,18 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import com.microsoft.signalr.androidchatroom.util.MessageTypeUtils;
 import com.microsoft.signalr.androidchatroom.util.SimpleCallback;
+
+import org.json.JSONArray;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -115,7 +119,7 @@ public class MessageFactory {
         return message;
     }
 
-    public static Message fromJsonObject(JsonObject jsonObject, String sessionUser) {
+    private static Message fromJsonObject(JsonObject jsonObject, String sessionUser) {
         String messageId = jsonObject.get("MessageId").getAsString();
         String sender = jsonObject.get("Sender").getAsString();
         String receiver = jsonObject.get("Receiver").getAsString();
@@ -153,6 +157,40 @@ public class MessageFactory {
         return historyMessages;
     }
 
+    public static String serializeHistoryMessages(List<Message> messages) {
+        JsonArray jsonArray = new JsonArray();
+        for (Message message : messages) {
+            JsonObject jsonObject = toJsonObject(message);
+            jsonArray.add(jsonObject);
+        }
+
+        return jsonArray.toString();
+    }
+
+    private static JsonObject toJsonObject(Message message) {
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.add("MessageId",gson.toJsonTree(message.getMessageId()));
+        jsonObject.add("Sender",gson.toJsonTree(message.getSender()));
+        jsonObject.add("Receiver",gson.toJsonTree(message.getReceiver()));
+        if (message.isImage()) {
+            jsonObject.add("Payload",gson.toJsonTree(""));
+        } else {
+            jsonObject.add("Payload",gson.toJsonTree(message.getPayload()));
+        }
+        jsonObject.add("IsRead",gson.toJsonTree(message.isRead()));
+        jsonObject.add("IsImage",gson.toJsonTree(message.isImage()));
+        Date date = new Date(message.getTime() - utcOffset);
+        jsonObject.add("SendTime", gson.toJsonTree(sdf.format(date)));
+        if (message.getReceiver().equals(Message.BROADCAST_RECEIVER)) {
+            jsonObject.add("Type", gson.toJsonTree(2));
+        } else if (message.getSender().equals(Message.SYSTEM_SENDER)) {
+            jsonObject.add("Type", gson.toJsonTree(0));
+        } else {
+            jsonObject.add("Type", gson.toJsonTree(1));
+        }
+        return jsonObject;
+    }
+
     public static String encodeToBase64(Bitmap bmp) {
         // Encoding image into base64 string
         String messageImageContent = ""; // Empty by default
@@ -168,7 +206,6 @@ public class MessageFactory {
 
     public static Bitmap decodeToBitmap(String payload) {
         byte[] byteArray = Base64.getDecoder().decode(payload);
-        Bitmap bmp = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length);
-        return bmp;
+        return BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length);
     }
 }

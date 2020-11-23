@@ -3,6 +3,8 @@ package com.microsoft.signalr.androidchatroom.contract;
 import com.microsoft.signalr.androidchatroom.model.param.LoginParam;
 import com.microsoft.signalr.androidchatroom.util.SimpleCallback;
 
+// Contract for login functions
+// Defined in MVP (Model-View-Presenter) Pattern
 public interface LoginContract {
 
     interface Presenter {

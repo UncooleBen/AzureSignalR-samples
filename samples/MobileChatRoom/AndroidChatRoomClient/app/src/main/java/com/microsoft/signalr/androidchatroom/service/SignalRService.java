@@ -90,6 +90,14 @@ public class SignalRService {
         }
     }
 
+    public static void stopHubConnection() {
+        if (hubConnection != null && hubConnection.getConnectionState() == HubConnectionState.CONNECTED) {
+            synchronized (SignalRService.class) {
+                hubConnection.stop();
+            }
+        }
+    }
+
     public static <T1> void registerServerCallback(String target, Action1<T1> action, Class<T1> clazz) {
         hubConnection.on(target, action, clazz);
     }
@@ -125,10 +133,18 @@ public class SignalRService {
         }, 0, 5000);
     }
 
-    public static void logout() {
-        if (hubConnection.getConnectionState() == HubConnectionState.CONNECTED) {
-            hubConnection.send("LeaveChatRoom", deviceUuid, username);
+    public static void stopReconnectTimer() {
+        if (reconnectTimer != null) {
+            reconnectTimer.cancel();
+            reconnectTimer = null;
         }
+    }
+
+    public static Single<String> logout() {
+        if (hubConnection.getConnectionState() == HubConnectionState.CONNECTED) {
+            return hubConnection.invoke(String.class, "LeaveChatRoom", deviceUuid, username);
+        }
+        return null;
     }
 
     public static void sendBroadcastMessage(String messageId, String sender, String payload, boolean isImage) {

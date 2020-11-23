@@ -3,6 +3,7 @@ package com.microsoft.signalr.androidchatroom.view;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -20,6 +21,7 @@ import androidx.annotation.Nullable;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.microsoft.signalr.androidchatroom.R;
 import com.microsoft.signalr.androidchatroom.activity.MainActivity;
@@ -49,6 +51,7 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
     private Button chatBoxImageButton;
     private RecyclerView chatContentRecyclerView;
     private ChatContentAdapter chatContentAdapter;
+    private SwipeRefreshLayout chatContentSwipeRefreshLayout;
     private LinearLayoutManager layoutManager;
 
     @Override
@@ -79,11 +82,12 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
         View view = inflater.inflate(R.layout.fragment_chat, container, false);
 
         // Get view element references
-        this.chatBoxReceiverEditText = view.findViewById(R.id.edit_chat_receiver);
-        this.chatBoxMessageEditText = view.findViewById(R.id.edit_chat_message);
-        this.chatBoxSendButton = view.findViewById(R.id.button_chatbox_send);
-        this.chatBoxImageButton = view.findViewById(R.id.button_chatbox_image);
-        this.chatContentRecyclerView = view.findViewById(R.id.recyclerview_chatcontent);
+        chatBoxReceiverEditText = view.findViewById(R.id.edit_chat_receiver);
+        chatBoxMessageEditText = view.findViewById(R.id.edit_chat_message);
+        chatBoxSendButton = view.findViewById(R.id.button_chatbox_send);
+        chatBoxImageButton = view.findViewById(R.id.button_chatbox_image);
+        chatContentRecyclerView = view.findViewById(R.id.recyclerview_chatcontent);
+        chatContentSwipeRefreshLayout = view.findViewById(R.id.swipe_refresh_layout_chatcontent);
 
         // Create objects
         mChatPresenter = new ChatPresenter(this, username, deviceUuid);
@@ -100,29 +104,22 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
 
         chatContentRecyclerView.setLayoutManager(layoutManager);
         chatContentRecyclerView.setAdapter(chatContentAdapter);
+
+        chatContentSwipeRefreshLayout.setOnRefreshListener(() -> {
+            mChatPresenter.pullHistoryMessages(0);
+        });
     }
 
     @Override
     public void activateListeners() {
         chatBoxSendButton.setOnClickListener(this::sendButtonOnClickListener);
         chatBoxImageButton.setOnClickListener(this::imageButtonOnClickListener);
-        chatContentRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                super.onScrolled(recyclerView, dx, dy);
-                if (!recyclerView.canScrollVertically(-1)) {
-                    Log.d(TAG, "OnScroll cannot scroll vertical -1");
-                    mChatPresenter.pullHistoryMessages(0);
-                }
-            }
-        });
     }
 
     @Override
     public void deactivateListeners() {
         chatBoxSendButton.setOnClickListener(null);
         chatBoxImageButton.setOnClickListener(null);
-        chatContentRecyclerView.addOnScrollListener(null);
     }
 
     @Override
@@ -163,10 +160,10 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
                 mChatPresenter.sendImageMessage(username, chatBoxReceiverEditText.getText().toString(), selectedImage);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
-                Toast.makeText(getContext(), "Image picking failed.", Toast.LENGTH_LONG).show();
+                Toast.makeText(getContext(), R.string.image_picking_failed, Toast.LENGTH_LONG).show();
             }
         } else {
-            Toast.makeText(getContext(), "You haven't picked Image.", Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), R.string.no_image_picked, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -175,6 +172,8 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
             // Create and send message
             mChatPresenter.sendTextMessage(username, chatBoxReceiverEditText.getText().toString(), chatBoxMessageEditText.getText().toString());
             chatBoxMessageEditText.getText().clear();
+        } else {
+            Toast.makeText(getContext(), R.string.empty_message_not_allowed, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -185,6 +184,7 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
     }
 
     public void onBackPressed() {
+        mChatPresenter.saveHistoryMessages();
         mChatPresenter.requestLogout(false);
     }
 
@@ -204,5 +204,7 @@ public class ChatFragment extends BaseFragment implements ChatContract.View {
                 default:
             }
         });
+
+        chatContentSwipeRefreshLayout.setRefreshing(false);
     }
 }
