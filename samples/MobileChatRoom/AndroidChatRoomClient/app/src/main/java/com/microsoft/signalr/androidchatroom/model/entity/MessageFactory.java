@@ -93,8 +93,9 @@ public class MessageFactory {
      * Creates a sending image broadcast message.
      *
      * @param sender A string of sender client username.
-     * @param payload A string of base64 encoded image content.
+     * @param bmp A bitmap representation of image.
      * @param time A long int of send time of the message in milliseconds.
+     * @param callback A callback function called when send completed
      * @return A corresponding Message object created.
      */
     public static Message createSendingImageBroadcastMessage(String sender, Bitmap bmp, long time, SimpleCallback<Message> callback) {
@@ -172,7 +173,7 @@ public class MessageFactory {
      *
      * @param sender A string of sender client username.
      * @param receiver A string of receiver client username.
-     * @param payload A string of base64 encoded image content.
+     * @param bmp A bitmap representation of image.
      * @param time A long int of send time of the message in milliseconds.
      * @return A corresponding Message object created.
      */
