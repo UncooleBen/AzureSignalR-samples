@@ -48,7 +48,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="msauth"
                     android:host="com.signalr.androidchatroom"
-                    android:path="/YOUR_PATH_HERE" />
+                    android:path="/u5Cp5VS77zmsY2gXRtbfP83vI60=" />
             </intent-filter>
         </activity>
     </application>
