@@ -1,7 +1,7 @@
 {
-  "client_id": "147b20a7-a4bc-4e1a-b860-02c4ec27a49d",
+  "client_id": "YOUR_CLIENT_ID_HERE",
   "authorization_user_agent": "DEFAULT",
-  "redirect_uri": "msauth://com.signalr.androidchatroom/u5Cp5VS77zmsY2gXRtbfP83vI60%3D",
+  "redirect_uri": "msauth://com.signalr.androidchatroom/YOUR_SIGNATURE_HASH_HERE",
   "account_mode": "SINGLE",
   "authorities": [
     {
