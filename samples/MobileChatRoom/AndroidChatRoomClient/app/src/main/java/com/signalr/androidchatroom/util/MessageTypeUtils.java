@@ -116,10 +116,11 @@ public class MessageTypeUtils {
             case 0:
                 return MessageTypeConstant.PRIVATE;
             case 1:
-                return MessageTypeConstant.BROADCAST;
-            case 2:
-            default:
                 return MessageTypeConstant.SYSTEM;
+            case 2:
+                return MessageTypeConstant.BROADCAST;
+            default:
+                throw new RuntimeException("Unresolvable Message Type:" + rawType);
         }
     }
 }

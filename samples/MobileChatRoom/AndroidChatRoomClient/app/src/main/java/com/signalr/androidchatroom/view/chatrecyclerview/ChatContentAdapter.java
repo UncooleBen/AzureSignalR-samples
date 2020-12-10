@@ -103,9 +103,11 @@ public class ChatContentAdapter extends RecyclerView.Adapter<ChatContentViewHold
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_received_image_private_message, parent, false);
                 break;
             case SYSTEM_MESSAGE_VIEW:
-            default:
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_system_message, parent, false);
                 break;
+            default:
+                Log.e(TAG, "Unresolvable Message Type");
+                view = null;
         }
 
         return new ChatContentViewHolder(view);

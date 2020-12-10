@@ -302,9 +302,9 @@ public class MessageFactory {
         if (message.getReceiver().equals(Message.BROADCAST_RECEIVER)) {
             jsonObject.add("Type", gson.toJsonTree(2));
         } else if (message.getSender().equals(Message.SYSTEM_SENDER)) {
-            jsonObject.add("Type", gson.toJsonTree(0));
-        } else {
             jsonObject.add("Type", gson.toJsonTree(1));
+        } else {
+            jsonObject.add("Type", gson.toJsonTree(0));
         }
         return jsonObject;
     }
