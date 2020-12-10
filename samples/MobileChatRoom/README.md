@@ -311,8 +311,8 @@ Overview:
 
 Table view:
 
-| Interface Method Signature                                                                                                                                | Function                                                              |
-|-----------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|-----------------------------------------------------------------------|
+|Interface Method Signature|Function|
+|--------------------------|--------|
 | void   receiveSystemMessage (String messageId ,  String payload , long sendTime)                                                                          | Client receives the system message from server                        |
 | void  receiveBroadcastMessage (String messageId ,  String sender ,  String receiver ,  String payload , boolean  isImage , long  sendTime , String ackId) | Client receives the broadcast message from server                     |
 | void  receivePrivateMessage (String messageId ,  String sender ,  String receiver ,  String payload , boolean  isImage , long  sendTime , String ackId)   | Client receives the private message from server                       |
