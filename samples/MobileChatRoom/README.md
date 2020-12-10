@@ -2,15 +2,14 @@
 
 This tutorial shows you how to build and modify a SignalR-based Android Chatting App. You'll learn how to:
 
-> **&#x2713;** Configure Your App in Azure Active Directory.
+> **&#x2713;** Create and Configure Your App in Azure Active Directory.
 >
 > **&#x2713;** Configure Your Local Android Mobile ChatRoom App.
 >
-> **&#x2713;** Chat With Mobile Chat Room App.
->
 > **&#x2713;** Integrate the chat room app with [ReliableChatRoom Server](../ReliableChatRoom/.)
 >
-
+> **&#x2713;** Chat With Mobile Chat Room App.
+>
 
 ## Prerequisites
 * Install [.NET Core 3.0 SDK](https://dotnet.microsoft.com/download/dotnet-core/3.0) (Version >= 3.0.100)
@@ -48,15 +47,15 @@ This tutorial shows you how to build and modify a SignalR-based Android Chatting
 
 2. Register a new app
 
-    a. Click on `App registrations` and then `New registration`
+    1. Click on `App registrations` and then `New registration`
 
-    ![aad](./assets/1-2-1-aad.png)
+        ![aad](./assets/1-2-1-aad.png)
 
-    b. Enter app name and chose the 3rd option in `Supported account types` 
+    2. Enter app name and chose the 3rd option in `Supported account types` 
 
-    ![app-registration](./assets/1-2-2-app-registration.png)
+        ![app-registration](./assets/1-2-2-app-registration.png)
 
-    c. Click `Register` button at the bottom
+    3. Click `Register` button at the bottom
 
 3. Copy Client ID in the text editor for later use
 
@@ -66,63 +65,107 @@ This tutorial shows you how to build and modify a SignalR-based Android Chatting
 
 4. Add an authentication for Android clients
 
-    a. In the `Authentication` tab of your newly registered app, click `Add a platform`.
+    1. In the `Authentication` tab of your newly registered app, click `Add a platform`.
 
-    ![aad-authentication](./assets/1-4-1-aad-authentication.png)
+        ![aad-authentication](./assets/1-4-1-aad-authentication.png)
 
-    b. Enter your Android app's package name (in our case should be `com.signalr.androidchatroom`) and a self-generated signature hash string with the provided command.
+    2. Enter your Android app's package name (in our case should be `com.signalr.androidchatroom`) and a self-generated signature hash string with the provided command.
 
-    ![config-authentication](./assets/1-4-2-config-authentication.png)
+        ![config-authentication](./assets/1-4-2-config-authentication.png)
 
-    c. Copy your generated signature hash string in text editor
+    3. Copy your generated signature hash string in text editor
 
-    d. Click `Configure` button
+    4. Click `Configure` button
 
-    e. Click `Save` button at top-left
+    5. Click `Save` button at top-left
 
 5. Wire your AAD Android authentication information into local Android App
 
-    a. Click `View` button in your newly added Android authentication method.
+    1. Click `View` button in your newly added Android authentication method.
 
-    ![view-json](./assets/1-5-1-view-json.png)
+        ![view-json](./assets/1-5-1-view-json.png)
 
-    b. Copy the JSON by clicking the button and then paste it into `AzureSignalR-samples\samples\MobileChatRoom\AndroidChatRoomClient\app\src\main\res\raw\auth_config_single_account.json`
+    2. Copy the JSON by clicking the button and then paste it into `AzureSignalR-samples\samples\MobileChatRoom\AndroidChatRoomClient\app\src\main\res\raw\auth_config_single_account.json`
 
-    ![copy-json](./assets/1-5-2-copy-json.png)
+        ![copy-json](./assets/1-5-2-copy-json.png)
 
-    There should already be a json file there. You can either replace the fields with ones you copied in your text editor earlier or just overwrite the whole file.
+        There should already be a json file there. You can either replace the fields with ones you copied in your text editor earlier or just overwrite the whole file.
 
-    ![existed-json](./assets/1-5-3-existed-json.png)
+        ![existed-json](./assets/1-5-3-existed-json.png)
 
 
-## Configure Your Local Android Mobile ChatRoom App
+## Configure Your Local Android Mobile ChatRoom App and Azure App Service
 
 1. Download and place `google-services.json`
 
-    a. In [Firebase Console](https://console.firebase.google.com/) -> Click your project
+    1. In [Firebase Console](https://console.firebase.google.com/) -> Click your project
 
-    b. In `Settings` -> `Project Settings` -> Download `google-services.json` -> Copy it to `AzureSignalR-samples\samples\MobileChatRoom\AndroidChatRoomClient\app\google-services.json`
+    2. In `Settings` -> `Project Settings` -> Download `google-services.json` -> Copy it to `AzureSignalR-samples\samples\MobileChatRoom\AndroidChatRoomClient\app\google-services.json`
 
 2. Paste your Azure Notification Hub connection string
 
-    a. We assume you've already created an `Azure Notification Hub` when configuring the app server. If not, please read [ReliableChatRoom](../ReliableChatRoom/README.md)
+    1. We assume you've already created an `Azure Notification Hub` when configuring the app server. If not, please read [*Build A SignalR-based Reliable Mobile Chat Room Server*](../ReliableChatRoom/README.md)
 
-    b. Copy and paste the `Connection String` and `Hub Name` in `AzureSignalR-samples\samples\MobileChatRoom\AndroidChatRoomClient\app\src\main\res\values\strings_secrets.xml`
+    2. Copy and paste the `Connection String` and `Hub Name` in `AzureSignalR-samples\samples\MobileChatRoom\AndroidChatRoomClient\app\src\main\res\values\strings_secrets.xml`
 
-    ![not-hub-conn-str-copy](./assets/2-2-1-not-hub-conn-str-copy.png)
-    ![not-hub-conn-str-paste](./assets/2-2-2-not-hub-conn-str-paste.png)
+        ![not-hub-conn-str-copy](./assets/2-2-1-not-hub-conn-str-copy.png)
+        ![not-hub-conn-str-paste](./assets/2-2-2-not-hub-conn-str-paste.png)
 
-    ![not-hub-name-copy](./assets/2-2-3-not-hub-name-copy.png)
-    ![not-hub-name-paste](./assets/2-2-4-not-hub-name-paste.png)
+        ![not-hub-name-copy](./assets/2-2-3-not-hub-name-copy.png)
+        ![not-hub-name-paste](./assets/2-2-4-not-hub-name-paste.png)
 
-2. Paste your Azure App Service Url
+3. Paste your Azure App Service Url
 
-    a. We assume you've already created an `Azure App Service` when configuring the app server. If not, please read [ReliableChatRoom](../ReliableChatRoom/README.md)
+    1. We assume you've already created an `Azure App Service` when configuring the app server. If not, please read [*Build A SignalR-based Reliable Mobile Chat Room Server*](../ReliableChatRoom/README.md)
 
-    b. Copy and paste the `URL` to `AzureSignalR-samples\samples\MobileChatRoom\AndroidChatRoomClient\app\src\main\java\com\signalr\androidchatroom\service\SignalRService.java`
+    2. Copy and paste the `URL` to `AzureSignalR-samples\samples\MobileChatRoom\AndroidChatRoomClient\app\src\main\java\com\signalr\androidchatroom\service\SignalRService.java`
 
-    ![app-service-copy](./assets/2-3-1-app-service-copy.png)
-    ![app-service-paste](./assets/2-3-2-app-service-paste.png)
+        ![app-service-copy](./assets/2-3-1-app-service-copy.png)
+        ![app-service-paste](./assets/2-3-2-app-service-paste.png)
+
+4. Allow client requests in `Azure App Service`
+
+    1. We assume you've already created an `Azure App Service` when configuring the app server. If not, please read [*Build A SignalR-based Reliable Mobile Chat Room Server*](../ReliableChatRoom/README.md)
+
+    2. Generate a client secret in AAD
+    
+        `Azure Active Directory` -> `App registrations` -> `YOUR_APP_NAME` -> `Certificates & secrets` -> `New client secret`
+
+        ![new-client-secret](./assets/2-4-1-new-client-secret.png)
+
+        Enter a `Description` and specify a `valid date` and then create the secret.
+
+        Copy the `Value` field in text editor (This is the only chance to access the complete client secret value since old client secret values will **NOT** display, like the below image.)
+
+        ![old-client-secret](./assets/2-4-2-old-client-secret.png)
+
+    3. Add client secret to `Azure App Service`
+
+        In `YOUR_AZURE_APP_SERVICE` -> `Authentication / Authorization`, turn on `App Service Authentication` switch;
+        
+        Select `Action to take when request is not authenticated` to `Log in with Azure Active Directory`;
+        
+        Click `Azure Active Directory` in `Authentication Providers`.
+
+        ![auth](./assets/2-4-3-auth.png)
+
+        In the detailed configuration dialog, switch `Management mode` to `Advanced` and click `Show Secret`;
+        
+        Paste your AAD Client ID in the `Client ID` field;
+        
+        Paste your client secret value to `Client Secret (Optional)` field;
+        
+        For `Issuer Url` field, if you would like anyone with a Microsoft/Outlook/Live/Xbox account to sign into your app, use `https://login.microsoftonline.com/common/v2.0`.
+        
+        Otherwise, if only accounts under your AAD are allowed, use your own AAD endpoint URL which should align with the format of `https://login.microsoftonline.com/YOUR_AAD_TENANT_OR_DIRECTORY_ID/v2.0`.
+
+        ![auth-advanced](./assets/2-4-4-auth-advanced.png)
+
+        Don't forget to click `OK` and then `Save` the `Authentication / Authorization`.
+
+
+
+
 
 ## Chat With Mobile Chat Room App
 
@@ -214,9 +257,9 @@ This tutorial shows you how to build and modify a SignalR-based Android Chatting
 
 ## Message Receiver Side
 
-1. Offline Message Pulling
+1. History Message Pulling
 
-    If you login with an existing username, all related messages will be pulled from server at the start of your client session.
+    Manually swipe down at the very top of message list and then release will trigger a history message pulling request.
 
     Here's an example.
 
@@ -268,13 +311,13 @@ Overview:
 
 Table view:
 
-| Interface Method Signature                                                                                                                                | Return Value | Function                                                              |
+| Interface Method Signature                                                                                                                                | Function                                                              |
 |-----------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|-----------------------------------------------------------------------|
-| void   receiveSystemMessage (String messageId ,  String payload , long sendTime)                                                                          | N/A          | Client receives the system message from server                        |
-| void  receiveBroadcastMessage (String messageId ,  String sender ,  String receiver ,  String payload , boolean  isImage , long  sendTime , String ackId) | N/A          | Client receives the broadcast message from server                     |
-| void  receivePrivateMessage (String messageId ,  String sender ,  String receiver ,  String payload , boolean  isImage , long  sendTime , String ackId)   | N/A          | Client receives the private message from server                       |
-| void  receiveImageContent (String messageId , String payload)                                                                                             | N/A          | Client receives the image content from server                         |
-| void  receiveHistoryMessages(String serializedString)                                                                                                     | N/A          | Client receives the history messages from server                      |
-| void  serverAck (String messageId , long receivedTimeInLong)                                                                                              | N/A          | Client receives the server ack from server                            |
-| void  clientRead (String messageId , String username)                                                                                                     | N/A          | Client receives the read status update from the receiver (via server) |
-| void  expireSession ( boolean showAlert)                                                                                                                  | N/A          | Client receives the force expire session message from server.         |
+| void   receiveSystemMessage (String messageId ,  String payload , long sendTime)                                                                          | Client receives the system message from server                        |
+| void  receiveBroadcastMessage (String messageId ,  String sender ,  String receiver ,  String payload , boolean  isImage , long  sendTime , String ackId) | Client receives the broadcast message from server                     |
+| void  receivePrivateMessage (String messageId ,  String sender ,  String receiver ,  String payload , boolean  isImage , long  sendTime , String ackId)   | Client receives the private message from server                       |
+| void  receiveImageContent (String messageId , String payload)                                                                                             | Client receives the image content from server                         |
+| void  receiveHistoryMessages(String serializedString)                                                                                                     | Client receives the history messages from server                      |
+| void  serverAck (String messageId , long receivedTimeInLong)                                                                                               Client receives the server ack from server                            |
+| void  clientRead (String messageId , String username)                                                                                                     | Client receives the read status update from the receiver (via server) |
+| void  expireSession ( boolean showAlert)                                                                                                                  | Client receives the force expire session message from server.         |
