@@ -16,7 +16,7 @@ namespace Microsoft.Azure.SignalR.Samples.ReliableChatRoom.Handlers
         private readonly IUserHandler _userHandler;
 
         // Notification Hub Client for sending notification
-        private readonly NotificationHubClient _notificationHub;
+        private readonly NotificationHubClient _notificationHubClient;
         
         // Format string for notification payload
         private readonly string _formatString = @"{{ ""data"" : {{ ""sender"" : ""{0}"", ""text"" : ""{1}"" }} }}";
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.SignalR.Samples.ReliableChatRoom.Handlers
         {
             _logger = logger;
             _userHandler = userHandler;
-            _notificationHub = NotificationHubClient.CreateClientFromConnectionString(connectionString, hubName);
+            _notificationHubClient = NotificationHubClient.CreateClientFromConnectionString(connectionString, hubName);
         }
 
         public async Task SendBroadcastNotification(Message broadcastMessage)
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.SignalR.Samples.ReliableChatRoom.Handlers
                 string targetTagExpression = string.Format("! {0}", _userHandler.GetUserSession(broadcastMessage.Sender).DeviceUuid);
 
                 _logger.LogInformation("Send broadcast notification from {0}", broadcastMessage.Sender);
-                await _notificationHub.SendFcmNativeNotificationAsync(jsonPayload, targetTagExpression);
+                await _notificationHubClient.SendFcmNativeNotificationAsync(jsonPayload, targetTagExpression);
             }
         }
 
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.SignalR.Samples.ReliableChatRoom.Handlers
                 string targetTagExpression = string.Format("{0}", receiverSession.DeviceUuid);
 
                 _logger.LogInformation("Send private notification from {0} to {1}", privateMessage.Sender, privateMessage.Receiver);
-                await _notificationHub.SendFcmNativeNotificationAsync(jsonPayload, targetTagExpression);
+                await _notificationHubClient.SendFcmNativeNotificationAsync(jsonPayload, targetTagExpression);
             }            
         }
     }
