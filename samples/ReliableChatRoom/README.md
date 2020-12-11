@@ -2,7 +2,7 @@
 
 This tutorial shows you how to build a reliable mobile chat room server with SignalR. You'll learn how to:
 
-> **&#x2713;** Build a simple reliable chat room with Azure SignalR.
+> **&#x2713;** Build a simple reliable chat room with Azure SignalR Service.
 >
 > **&#x2713;** Integrate chat room server with Firebase Notification.
 > 
@@ -40,7 +40,7 @@ Get the server key we need to build the chat room server:
 
     ![firebase-console-project-selection](./assets/firebase-console-1.png)
 
-2. *Goto Settings -> Project Settings -> Cloud Messaging Tab* and then copy your server key
+2. Goto `Settings` -> `Project Settings` -> `Cloud Messaging Tab` and then copy your server key
 
     If there is no server key here, add one. 
     ![firebase-console-server-key](./assets/firebase-console-2.png)
@@ -52,7 +52,7 @@ See [reference](https://docs.microsoft.com/en-us/azure/notification-hubs/notific
 
 One core thing to do is adding your Firebase Server Key into your Notification Hub:
 
-1. Enter your Notification Hub in [Azure Portal](https://ms.portal.azure.com/) and click *Google (GCM/FCM)*
+1. Enter your Notification Hub in [Azure Portal](https://ms.portal.azure.com/) and click `Google (GCM/FCM)`
 
     ![notification-hub-1](./assets/notification-hub-1.png)
 
@@ -67,7 +67,7 @@ See [reference](https://docs.microsoft.com/en-us/azure/storage/common/storage-ac
 
 We will need connection string for chat room server:
 
-1. Enter your Storage Account in [Azure Portal](https://ms.portal.azure.com/) and click *Access Keys*
+1. Enter your Storage Account in [Azure Portal](https://ms.portal.azure.com/) and click `Access Keys`
 
     ![storage-1](./assets/storage-1.png)
 
@@ -81,7 +81,7 @@ See [reference](https://docs.microsoft.com/en-us/azure/azure-signalr/signalr-qui
 
 We will need connection string for chat room server:
 
-1. Enter your SignalR Service in [Azure Portal](https://ms.portal.azure.com/) and click *Keys*
+1. Enter your SignalR Service in [Azure Portal](https://ms.portal.azure.com/) and click `Keys`
 
     ![signalr-1](./assets/signalr-1.png)
 
@@ -189,7 +189,7 @@ See [reference](https://docs.microsoft.com/en-us/aspnet/core/security/app-secret
 
 2. To run the server remotely, please follow these steps:
 
-    1. In `YOUR_AZURE_aPP_SERVICE` -> `Overview` -> Click `Start`
+    1. In `YOUR_AZURE_APP_SERVICE` -> `Overview` -> Click `Start`
 
         ![start-remote-server](./assets/start-remote-server.png)
 
