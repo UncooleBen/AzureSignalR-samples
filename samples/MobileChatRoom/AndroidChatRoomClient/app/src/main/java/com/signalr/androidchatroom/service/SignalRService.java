@@ -29,7 +29,7 @@ import io.reactivex.schedulers.Schedulers;
 public class SignalRService {
     private static final String TAG = "SignalRService";
 
-    private static final String azureAppServiceUrl = "https://mobilechatroomapp.azurewebsites.net/chat";
+    private static final String azureAppServiceUrl = "YOUR_APP_SERVICE_URL";
     private static final String localDebugUrl = "http://10.0.2.2:5000/chat";
     private static final String serverUrl = azureAppServiceUrl;
 

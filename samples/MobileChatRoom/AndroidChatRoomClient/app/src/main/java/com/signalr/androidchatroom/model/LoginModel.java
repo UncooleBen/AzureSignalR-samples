@@ -31,10 +31,55 @@ public class LoginModel extends BaseModel implements LoginContract.Model {
     }
 
     @Override
-    public void refreshDeviceUuid() {
-        mDeviceUuid = mMainActivity.getNotificationService().getDeviceUuid();
+    public void createClientApplication(SimpleCallback<Void> createApplicationCallback) {
+        AuthenticationService
+                .createClientApplication(
+                        mMainActivity.getApplicationContext(),
+                        new SimpleCallback<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                createApplicationCallback.onSuccess(null);
+                            }
+
+                            @Override
+                            public void onError(String errorMessage) {
+                                createApplicationCallback.onError(errorMessage);
+                            }
+                        });
     }
 
+    @Override
+    public void signIn(SimpleCallback<String> signInCallback) {
+        AuthenticationService
+                .loadActiveAccountOrSignIn(mMainActivity, new SimpleCallback<String>() {
+                    @Override
+                    public void onSuccess(String username) {
+                        Log.d(TAG, "signIn callback get Username: "+username);
+                        signInCallback.onSuccess(username);
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        signInCallback.onError(errorMessage);
+                    }
+                });
+    }
+
+    @Override
+    public void acquireIdToken(SimpleCallback<String> idTokenCallback) {
+        AuthenticationService
+                .acquireIdToken(new SimpleCallback<String>() {
+                    @Override
+                    public void onSuccess(String idToken) {
+                        idTokenCallback.onSuccess(idToken);
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        idTokenCallback.onError(errorMessage);
+                    }
+                });
+    }
 
     @Override
     public void enterChatRoom(String idToken, String username, SimpleCallback<Void> callback) {
@@ -85,54 +130,8 @@ public class LoginModel extends BaseModel implements LoginContract.Model {
     }
 
     @Override
-    public void createClientApplication(SimpleCallback<Void> createApplicationCallback) {
-        AuthenticationService
-                .createClientApplication(
-                        mMainActivity.getApplicationContext(),
-                        new SimpleCallback<Void>() {
-            @Override
-            public void onSuccess(Void aVoid) {
-                createApplicationCallback.onSuccess(null);
-            }
-
-            @Override
-            public void onError(String errorMessage) {
-                createApplicationCallback.onError(errorMessage);
-            }
-        });
-    }
-
-    @Override
-    public void signIn(SimpleCallback<String> signInCallback) {
-        AuthenticationService
-                .loadActiveAccountOrSignIn(mMainActivity, new SimpleCallback<String>() {
-                    @Override
-                    public void onSuccess(String username) {
-                        Log.d(TAG, "signIn callback get Username: "+username);
-                        signInCallback.onSuccess(username);
-                    }
-
-                    @Override
-                    public void onError(String errorMessage) {
-                        signInCallback.onError(errorMessage);
-                    }
-                });
-    }
-
-    @Override
-    public void acquireIdToken(SimpleCallback<String> idTokenCallback) {
-        AuthenticationService
-                .acquireIdToken(new SimpleCallback<String>() {
-                    @Override
-                    public void onSuccess(String idToken) {
-                        idTokenCallback.onSuccess(idToken);
-                    }
-
-                    @Override
-                    public void onError(String errorMessage) {
-                        idTokenCallback.onError(errorMessage);
-                    }
-                });
+    public void refreshDeviceUuid() {
+        mDeviceUuid = mMainActivity.getNotificationService().getDeviceUuid();
     }
 
     @Override
