@@ -1,0 +1,125 @@
+﻿@{
+    ViewData["Title"] = "TextEditor - SignalR Realtime Code Editor";
+}
+
+<div class="text-center">
+    @if (User.Identity.IsAuthenticated)
+    {
+        string role = "";
+        foreach (var pair in User.Claims)
+        {
+            if (pair.Type.Contains("role"))
+            {
+                role = pair.Value;
+                break;
+            }
+        }
+
+        <script>var role = "@role";</script>
+
+        if (role == "TextEditor.Lock")
+        {
+            <div class="text-left">
+                <input id="lockBtn" value="Lock Editor" type="button" />
+            </div>
+        }
+        else
+        {
+
+        }
+
+        <div class="text-left">
+            <div id="editor"></div>
+        </div>
+    }
+</div>
+
+@section Scripts
+{
+    <script src="~/lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="~/lib/microsoft-signalr/signalr.js" type="text/javascript"></script>
+    <script>
+        var underUpdating = false;
+        var editor = ace.edit("editor");
+        editor.resize();
+        editor.setTheme("ace/theme/monokai");
+        editor.session.setMode("ace/mode/javascript");
+        editor.setReadOnly = true;
+
+        function onConnected(connection) {
+            console.log('connection started');
+            $("#lockBtn").on('click', function () {
+                onLockButtonClicked();
+            });
+            connection.send('OnCodeEditorStateChanged', editor.getSession().getValue());
+            editor.getSession().on('change', function () {
+                if (!underUpdating) {
+                    connection.send('OnCodeEditorStateChanged', editor.getSession().getValue());
+                }
+            });
+        }
+
+        function onConnectionError(error) {
+            if (error && error.message) {
+                console.error(error.message);
+            }
+        }
+
+        function bindServerCallbacks(connection) {
+            connection.on('updateCodeEditor', updateCodeEditor);
+            connection.on('lockCodeEditor', lockCodeEditor);
+            connection.on('unlockCodeEditor', unlockCodeEditor);
+            connection.onclose(onConnectionError);
+        }
+
+        function enableEditor() {
+            editor.setReadOnly = false;
+        }
+
+        function updateCodeEditor(content) {
+            underUpdating = true;
+            editor.getSession().setValue(content);
+            underUpdating = false;
+        }
+
+        function lockCodeEditor() {
+            if (role == "TextEditor.Lock") {
+                $("#lockBtn").attr("value", "Unlock Editor");
+            } else {
+                console.log("set read only true");
+                editor.setReadOnly(true);
+            }
+        }
+
+        function unlockCodeEditor() {
+            if (role == "TextEditor.Lock") {
+                $("#lockBtn").attr("value", "Lock Editor");
+            } else {
+                console.log("set read only false");
+                editor.setReadOnly(false);
+            }
+        }
+
+        function onLockButtonClicked() {
+            if ($("#lockBtn").attr("value") == "Lock Editor") {
+                console.log("Lock Editor");
+                connection.send('OnCodeEditorLocked');
+            } else {
+                console.log("Unlock Editor");
+                connection.send('OnCodeEditorUnlocked');
+            }
+        }
+
+        var connection = new signalR.HubConnectionBuilder()
+            .withUrl('/CodeEditor')
+            .build();
+        bindServerCallbacks(connection);
+        connection.start()
+            .then(function () {
+                onConnected(connection);
+            })
+            .catch(function (error) {
+                console.error(error.message);
+            });
+    </script>
+}
