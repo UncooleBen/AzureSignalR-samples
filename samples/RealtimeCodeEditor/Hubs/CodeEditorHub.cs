@@ -19,38 +19,79 @@ namespace RealtimeCodeEditor.Hubs
             _logger = logger;
             _sessionHandler = sessionHandler;
         }
-        public void OnEnterSession(string user)
+
+        private bool CheckSessionState(string sessionCode, string user)
         {
-            _logger.LogInformation("OnEnterSession {0}", user);
-            _sessionHandler.AddOrUpdateConnectionId(user, Context.ConnectionId);
-            Clients.Client(Context.ConnectionId).SendAsync("enableEditor");
+            if (!_sessionHandler.IsLegalUser(sessionCode, user)) {
+                Clients.Client(Context.ConnectionId).SendAsync("expireSession");
+                return false;
+            }
+
+            return true;
+        }
+
+        public void OnEnterSession(string sessionCode, string user)
+        {
+            if (CheckSessionState(sessionCode, user)) {
+                _logger.LogInformation("OnEnterSession code: {0}, user: {1}", sessionCode, user);
+                _sessionHandler.AddOrUpdateConnectionId(user, Context.ConnectionId);
+                Clients.Client(Context.ConnectionId).SendAsync("enableEditor");
+            }
         }
 
         public void OnCodeEditorStateChanged(string sessionCode, string user, string content)
         {
-            _logger.LogInformation("OnCodeEditorStateChanged");
+            if (CheckSessionState(sessionCode, user))
+            {
+                _logger.LogInformation("OnCodeEditorStateChanged");
+                _sessionHandler.UpdateSessionState(sessionCode, content);
+                IReadOnlyList<string> targetConnectionIds = _sessionHandler.GetSessionConnectionIds(sessionCode, user);
 
-            IReadOnlyList<string> targetConnectionIds = _sessionHandler.GetSessionConnectionIds(sessionCode, user);
-
-            Clients.Clients(targetConnectionIds).SendAsync("updateCodeEditor", content);
+                if (targetConnectionIds.Count > 0)
+                {
+                    Clients.Clients(targetConnectionIds).SendAsync("updateCodeEditor", content);
+                }
+            }
         }
 
         public void OnCodeEditorLocked(string sessionCode, string user)
         {
-            _logger.LogInformation("OnCodeEditorLocked");
+            if (CheckSessionState(sessionCode, user))
+            {
+                if (!_sessionHandler.IsLegalCreator(sessionCode, user))
+                {
+                    return;
+                }
 
-            IReadOnlyList<string> targetConnectionIds = _sessionHandler.GetSessionConnectionIds(sessionCode, user);
+                _logger.LogInformation("OnCodeEditorLocked");
+                _sessionHandler.LockSession(sessionCode);
 
-            Clients.Clients(targetConnectionIds).SendAsync("lockCodeEditor");
+                IReadOnlyList<string> targetConnectionIds = _sessionHandler.GetSessionConnectionIds(sessionCode);
+                if (targetConnectionIds.Count > 0)
+                {
+                    Clients.Clients(targetConnectionIds).SendAsync("lockCodeEditor");
+                }
+            }
         }
 
         public void OnCodeEditorUnlocked(string sessionCode, string user)
         {
-            _logger.LogInformation("OnCodeEditorUnlocked");
+            if (CheckSessionState(sessionCode, user))
+            {
+                if (!_sessionHandler.IsLegalCreator(sessionCode, user))
+                {
+                    return;
+                }
 
-            IReadOnlyList<string> targetConnectionIds = _sessionHandler.GetSessionConnectionIds(sessionCode, user);
+                _logger.LogInformation("OnCodeEditorUnlocked");
+                _sessionHandler.UnlockSession(sessionCode);
 
-            Clients.Clients(targetConnectionIds).SendAsync("unlockCodeEditor");
+                IReadOnlyList<string> targetConnectionIds = _sessionHandler.GetSessionConnectionIds(sessionCode);
+                if (targetConnectionIds.Count > 0)
+                {
+                    Clients.Clients(targetConnectionIds).SendAsync("unlockCodeEditor");
+                }
+            }
         }
     }
 }

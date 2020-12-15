@@ -2,35 +2,56 @@
     ViewData["Title"] = "TextEditor - SignalR Realtime Code Editor";
 }
 
+<style type="text/css" media="screen">
+    #editor {
+        height: 500px;
+        width: inherit;
+    }
+</style>
+
 <div class="text-center">
-    @if (User.Identity.IsAuthenticated)
-    {
-        string role = "";
-        foreach (var pair in User.Claims)
+    @{
+        string user = ViewBag.SessionModel.User;
+        string creator = ViewBag.SessionModel.Creator;
+        string sessionCode = ViewBag.SessionModel.SessionCode;
+        bool isLocked = ViewBag.SessionModel.IsLocked;
+        string savedState = ViewBag.SessionModel.SavedState;
+
+        if (User.Identity.IsAuthenticated)
         {
-            if (pair.Type.Contains("role"))
+            string role = "";
+            foreach (var pair in User.Claims)
             {
-                role = pair.Value;
-                break;
+                if (pair.Type.Contains("role"))
+                {
+                    role = pair.Value;
+                    break;
+                }
             }
-        }
 
-        <script>var role = "@role";</script>
+            <script>var role = "@role";</script>
 
-        if (role == "TextEditor.Lock")
-        {
+            if (role == "TextEditor.Lock")
+            {
+                <div class="text-left">
+                    <input id="lockBtn" value="Lock Editor" type="button" />
+                    <div id="sessionCode" style="color:red">Session Code: @sessionCode</div>
+                    <div></div>
+                </div>
+            }
+            else
+            {
+                <div class="text-left">
+                    <div id="sessionCode" style="color:red">Session Code: @sessionCode</div>
+                    <div id="creator" style="color:blueviolet">Creator: @creator</div>
+                    <div id="state" style="color:red">State: Initializing</div>
+                </div>
+            }
+
             <div class="text-left">
-                <input id="lockBtn" value="Lock Editor" type="button" />
+                <div id="editor"></div>
             </div>
         }
-        else
-        {
-
-        }
-
-        <div class="text-left">
-            <div id="editor"></div>
-        </div>
     }
 </div>
 
@@ -44,19 +65,16 @@
         editor.resize();
         editor.setTheme("ace/theme/monokai");
         editor.session.setMode("ace/mode/javascript");
-        editor.setReadOnly = true;
+        editor.setReadOnly(true);
+        $("#editor").keypress(function () {
+            if (editor.getReadOnly() == true) {
+                $("#state").attr("style", "background-color:red;color:white");
+            }
+        });
 
         function onConnected(connection) {
             console.log('connection started');
-            $("#lockBtn").on('click', function () {
-                onLockButtonClicked();
-            });
-            connection.send('OnCodeEditorStateChanged', editor.getSession().getValue());
-            editor.getSession().on('change', function () {
-                if (!underUpdating) {
-                    connection.send('OnCodeEditorStateChanged', editor.getSession().getValue());
-                }
-            });
+            connection.send('OnEnterSession', "@sessionCode", "@user");
         }
 
         function onConnectionError(error) {
@@ -66,14 +84,34 @@
         }
 
         function bindServerCallbacks(connection) {
+            connection.on('enableEditor', enableEditor);
             connection.on('updateCodeEditor', updateCodeEditor);
             connection.on('lockCodeEditor', lockCodeEditor);
             connection.on('unlockCodeEditor', unlockCodeEditor);
+            connection.on('expireSession', expireSession);
             connection.onclose(onConnectionError);
         }
 
         function enableEditor() {
-            editor.setReadOnly = false;
+            editor.session.setValue("@savedState");
+            editor.setReadOnly(@isLocked.ToString().ToLower());
+
+            $("#state").attr("style", "background-color:white;color:red");
+            if (@isLocked.ToString().ToLower()) {
+                $("#state").html("State: Locked")
+            } else {
+                $("#state").html("State: Free to Type")
+            }
+
+            editor.getSession().on('change', function () {
+                if (!underUpdating) {
+                    connection.send('OnCodeEditorStateChanged', "@sessionCode", "@user", editor.getSession().getValue());
+                }
+            });
+
+            $("#lockBtn").on('click', function () {
+                onLockButtonClicked();
+            });
         }
 
         function updateCodeEditor(content) {
@@ -83,10 +121,12 @@
         }
 
         function lockCodeEditor() {
+            console.log("lockCodeEditor");
             if (role == "TextEditor.Lock") {
                 $("#lockBtn").attr("value", "Unlock Editor");
             } else {
                 console.log("set read only true");
+                $("#state").html("State: Locked")
                 editor.setReadOnly(true);
             }
         }
@@ -96,17 +136,24 @@
                 $("#lockBtn").attr("value", "Lock Editor");
             } else {
                 console.log("set read only false");
+                $("#state").attr("style", "background-color:white;color:red");
+                $("#state").html("State: Free to Type")
                 editor.setReadOnly(false);
             }
+        }
+
+        function expireSession() {
+            alert("Server has expired the session.")
+            window.location.href = "/";
         }
 
         function onLockButtonClicked() {
             if ($("#lockBtn").attr("value") == "Lock Editor") {
                 console.log("Lock Editor");
-                connection.send('OnCodeEditorLocked');
+                connection.send('OnCodeEditorLocked', "@sessionCode", "@user");
             } else {
                 console.log("Unlock Editor");
-                connection.send('OnCodeEditorUnlocked');
+                connection.send('OnCodeEditorUnlocked', "@sessionCode", "@user");
             }
         }
 

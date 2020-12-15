@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using RealtimeCodeEditor.Hubs;
 using RealtimeCodeEditor.Models.Entities;
@@ -8,10 +9,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace RealtimeCodeEditor.Models
 {
-    public class SessionHandler
+    public class SessionHandler : IDisposable
     {
         private static readonly string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         private static readonly Random random = new Random();
@@ -23,8 +25,8 @@ namespace RealtimeCodeEditor.Models
 
         private readonly int _sessionCodeLength = 6;
 
-        private readonly TimeSpan _sessionExpireThreshold = TimeSpan.FromSeconds(100);
-        private readonly TimeSpan _sessionCheckingInterval = TimeSpan.FromSeconds(100);
+        private readonly TimeSpan _sessionExpireThreshold = TimeSpan.FromSeconds(180);
+        private readonly TimeSpan _sessionCheckingInterval = TimeSpan.FromSeconds(90);
         private Timer _sessionChecker;
 
         public SessionHandler(ILogger<SessionHandler> logger)
@@ -32,7 +34,7 @@ namespace RealtimeCodeEditor.Models
             _logger = logger;
             _sessions = new ConcurrentDictionary<string, Session>();
             _connectionIds = new ConcurrentDictionary<string, string>();
-            //_sessionChecker = new Timer(_ => CheckSession(), state: null, dueTime: TimeSpan.FromMilliseconds(0), period: _sessionCheckingInterval);
+            _sessionChecker = new Timer(_ => CheckSession(), state: null, dueTime: TimeSpan.FromMilliseconds(0), period: _sessionCheckingInterval);
         }
 
         private string GenerateRandomSessionCode()
@@ -58,7 +60,17 @@ namespace RealtimeCodeEditor.Models
 
             if (sessionExists)
             {
+                // Remove all old joined sessions
+                foreach (string joinedSessionCode in GetJoinedSessionCodes(user))
+                {
+                    _logger.LogInformation("Removing old Session code: {0} user: {1}", joinedSessionCode, user);
+                    _sessions.TryGetValue(joinedSessionCode, out Session joinedSession);
+                    joinedSession.RemoveUser(user);
+                }
+
+                // Add user to the new session
                 session.AddUser(user);
+                session.TouchSession();
                 _logger.LogInformation("Join Session user: {0}, code: {1}", user, sessionCode);
                 return true;
             }
@@ -66,21 +78,113 @@ namespace RealtimeCodeEditor.Models
             return false;
         }
 
-        public Session GetSessionByCode(string sessionCode)
+        private IEnumerable<string> GetJoinedSessionCodes(string user)
         {
-            _sessions.TryGetValue(sessionCode, out Session session);
-            return session;
+            IEnumerable<string> sessionCodesJoinedByUser = from pair in _sessions
+                                                           where pair.Value.Type == SessionTypeEnum.Active && pair.Value.HasUser(user)
+                                                           select pair.Key;
+
+            return sessionCodesJoinedByUser;
+        }
+
+        public void QuitSession(string sessionCode, string user)
+        {
+            bool sessionExists = _sessions.TryGetValue(sessionCode, out Session session);
+
+            if (!sessionExists)
+            {
+                return;
+            }
+            session.RemoveUser(user);
+            session.TouchSession();
+            _logger.LogInformation("Quit Session user: {0}, code: {1}", user, sessionCode);
+        }
+
+        public SessionModel GenerateSessionModel(string sessionCode, string user)
+        {
+            bool success = _sessions.TryGetValue(sessionCode, out Session session);
+
+            if (!success)
+            {
+                return null;
+            }
+
+            return new SessionModel(user, session.Creator, sessionCode, session.IsLocked, session.SavedState);
+        }
+
+        public void LockSession(string sessionCode)
+        {
+            bool success = _sessions.TryGetValue(sessionCode, out Session session);
+
+            if (!success)
+            {
+                return;
+            }
+
+            session.Lock();
+            session.TouchSession();
+        }
+
+        public void UnlockSession(string sessionCode)
+        {
+            bool success = _sessions.TryGetValue(sessionCode, out Session session);
+
+            if (!success)
+            {
+                return;
+            }
+
+            session.Unlock();
+            session.TouchSession();
+        }
+
+        public void UpdateSessionState(string sessionCode, string savedState)
+        {
+            bool success = _sessions.TryGetValue(sessionCode, out Session session);
+
+            if (!success)
+            {
+                return;
+            }
+
+            session.SavedState = HttpUtility.UrlDecode(savedState);
+            session.TouchSession();
+        }
+
+        public bool IsLegalUser(string sessionCode, string user)
+        {
+            return _sessions.TryGetValue(sessionCode, out Session _);
+        }
+
+        public bool IsLegalCreator(string sessionCode, string creator)
+        {
+            bool success = _sessions.TryGetValue(sessionCode, out Session session);
+
+            if (!success)
+            {
+                return false;
+            }
+
+            return session.Creator == creator;
         }
 
         public IReadOnlyList<string> GetSessionConnectionIds(string sessionCode, string except = "")
         {
-            Session session = _sessions
-                                .Where((pair) => pair.Key == sessionCode && pair.Value.Type == SessionTypeEnum.Active)
-                                .First().Value;
+            KeyValuePair<string, Session> sessionCodeSessionPair =
+                _sessions
+                .Where((pair) => pair.Key == sessionCode && pair.Value.Type == SessionTypeEnum.Active)
+                .FirstOrDefault();
+
+            if (sessionCodeSessionPair.Equals(default(KeyValuePair<string, Session>))) // No elements in sequence
+            {
+                return Array.Empty<string>();
+            }
+
+            Session session = sessionCodeSessionPair.Value;
 
             IEnumerable<string> connectionIds = from pair in _connectionIds
                                                 where session.GetUsers(except).Contains(pair.Key)
-                                                select pair.Key;
+                                                select pair.Value;
 
             return connectionIds.ToList().AsReadOnly();
         }
@@ -92,19 +196,44 @@ namespace RealtimeCodeEditor.Models
 
         private void CheckSession()
         {
+            List<string> expiredSessionCodes = new List<string>();
+
             foreach (var pair in _sessions)
             {
                 Session session = pair.Value;
                 if (session.Type == SessionTypeEnum.Active)
                 {
                     var elapsed = DateTime.UtcNow - session.LastActiveDateTime;
-                    if (elapsed > _sessionExpireThreshold)
+                    if (elapsed > _sessionExpireThreshold) // Timeout
                     {
                         _logger.LogInformation("Session sessCode: {0} time out. Force expire. Creator: {1}", session.SessionCode, session.Creator);
                         session.Expire();
+                        expiredSessionCodes.Add(pair.Key);
+                    } else if (session.GetUsers().Length == 0) // Not timeout but has zero participants
+                    {
+                        _logger.LogInformation("Session sessCode: {0} no participants. Force expire. Creator: {1}", session.SessionCode, session.Creator);
+                        session.Expire();
+                        expiredSessionCodes.Add(pair.Key);
                     }
                 }
             }
+
+            foreach (string expiredSessionCode in expiredSessionCodes)
+            {
+                _sessions.Remove(expiredSessionCode, out Session expiredSession);
+
+                expiredSession.Dispose();
+            }
+
+
+        }
+
+        public void Dispose()
+        {
+            _sessionChecker.Dispose();
+
+            _sessions.Clear();
+            _connectionIds.Clear();
         }
     }
 }

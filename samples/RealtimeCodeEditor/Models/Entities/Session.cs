@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace RealtimeCodeEditor.Models.Entities
 {
-    public class Session
+    public class Session : IDisposable
     {
         public string SessionCode { get; private set; }
 
@@ -14,21 +14,23 @@ namespace RealtimeCodeEditor.Models.Entities
 
         public string Creator { get; private set; }
 
+        public bool IsLocked { get; private set; }
+
         public string SavedState { get; set; }
 
         public DateTime LastActiveDateTime { get; set; }
 
-        private ConcurrentBag<string> _users;
+        private ISet<string> _users;
 
         public Session(string sessionCode, string creator)
         {
             SessionCode = sessionCode;
             Type = SessionTypeEnum.Active;
             Creator = creator;
-            _users = new ConcurrentBag<string>();
-            _users.Add(creator);
+            IsLocked = false;
+            _users = new HashSet<string>();
         }
-        
+
         public void AddUser(string user)
         {
             if (Type == SessionTypeEnum.Expired)
@@ -37,6 +39,33 @@ namespace RealtimeCodeEditor.Models.Entities
             }
 
             _users.Add(user);
+        }
+
+        public void RemoveUser(string user)
+        {
+            if (Type == SessionTypeEnum.Expired)
+            {
+                throw new Exception("Attempts to update an expired session.");
+            }
+
+            _users.Remove(user);
+        }
+
+        public string[] GetUsers(string except = "")
+        {
+            if (except == "")
+            {
+                return _users.ToArray();
+            }
+            else
+            {
+                return _users.Where(s => s != except).ToArray();
+            }
+        }
+
+        public bool HasUser(string user)
+        {
+            return _users.Contains<string>(user);
         }
 
         public void TouchSession()
@@ -54,15 +83,20 @@ namespace RealtimeCodeEditor.Models.Entities
             Type = SessionTypeEnum.Expired;
         }
 
-        public string[] GetUsers(string except = "")
+        public void Lock()
         {
-            if (except == "")
-            {
-                return _users.ToArray();
-            } else
-            {
-                return _users.Where(s => s != except).ToArray();
-            }
+            IsLocked = true;
         }
+
+        public void Unlock()
+        {
+            IsLocked = false;
+        }
+
+        public void Dispose()
+        {
+            _users.Clear();
+        }
+
     }
 }

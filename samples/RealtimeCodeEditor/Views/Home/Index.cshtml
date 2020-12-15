@@ -8,13 +8,6 @@
     }
 }
 
-<style type="text/css" media="screen">
-    #editor {
-        height: 500px;
-        width: inherit;
-    }
-</style>
-
 <div class="text-center">
     @if (User.Identity.IsAuthenticated)
     {
@@ -31,7 +24,7 @@
         string user = "";
         foreach (var pair in User.Claims)
         {
-            if (pair.Type.Contains("username"))
+            if (pair.Type.Contains("preferred_username"))
             {
                 user = pair.Value;
                 break;
@@ -40,24 +33,26 @@
 
         if (role == "TextEditor.Lock")
         {
-            <form method="post" action="/Home/StartNewSession">
-                <input type="hidden" value="@user">
+            <form method="post" asp-controller="Home" asp-action="StartNewSession">
+                <input type="hidden" name="user" value="@user">
                 <input type="submit" value="Start A New Session">
             </form>
             <br>
             <div>Or, enter a session code</div>
-            <form method="post" action="/Home/EnterSession">
+            <form method="post" asp-controller="Home" asp-action="EnterSession">
                 <label for="sessionCode">Session Code:</label><br>
-                <input type="text" id="sessionCode"><br>
+                <input type="text" name="sessionCode"><br>
+                <input type="hidden" name="user" value="@user">
                 <input type="submit" value="Enter Session">
             </form>
         }
         else
         {
             <div>Enter a session code to join</div>
-            <form method="post" action="/Home/EnterSession">
+            <form method="post" asp-controller="Home" asp-action="EnterSession">
                 <label for="sessionCode">Session Code:</label><br>
-                <input type="text" id="sessionCode"><br>
+                <input type="text" name="sessionCode"><br>
+                <input type="hidden" name="user" value="@user">
                 <input type="submit" value="Enter Session">
             </form>
         }

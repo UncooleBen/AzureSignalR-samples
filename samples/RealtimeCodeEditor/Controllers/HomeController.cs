@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RealtimeCodeEditor.Models;
 using System;
@@ -41,32 +42,32 @@ namespace RealtimeCodeEditor.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
 
-        [HttpGet("Session/{code}")]
+        [HttpGet]
         public IActionResult Session(string code)
         {
-            return View("~/Views/Home/CodeEditor.cshtml", code);
+            string requestSourceUser = User.Claims.Where(claim => claim.Type == "preferred_username").First().Value;
+            if (_sessionHandler.IsLegalUser(code, requestSourceUser))
+            {
+                _sessionHandler.JoinSession(code, requestSourceUser);
+                ViewBag.SessionModel = _sessionHandler.GenerateSessionModel(code, requestSourceUser);
+                return View("~/Views/Home/CodeEditor.cshtml");
+            }
+            return Redirect("/");
         }
 
-        [HttpPost("StartNewSession/{user}")]
+        [HttpPost]
         public IActionResult StartNewSession(string user)
         {
-            _logger.LogInformation("StartNewSession");
+            _logger.LogInformation("StartNewSession user: {0}", user);
             string sessionCode = _sessionHandler.CreateSession(user);
-
             return Redirect("/Home/Session?code=" + sessionCode);
         }
 
-        [HttpPost("EnterSession/{user, code}")]
-        public IActionResult EnterSession(string user, string code)
+        [HttpPost]
+        public IActionResult EnterSession(string user, string sessionCode)
         {
-            bool success = _sessionHandler.JoinSession(code, user);
-
-            if (success)
-            {
-                return Redirect("/Home/Session?code=" + code);
-            }
-
-            return View();
+            _logger.LogInformation("EnterSession user: {0}, code: {1}", user, sessionCode);
+            return Redirect("/Home/Session?code=" + sessionCode);
         }
     }
 }
