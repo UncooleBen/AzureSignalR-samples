@@ -5,6 +5,7 @@ using RealtimeCodeEditor.Models.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace RealtimeCodeEditor.Hubs
@@ -30,31 +31,30 @@ namespace RealtimeCodeEditor.Hubs
             return true;
         }
 
-        public void OnEnterSession(string sessionCode, string user)
+        public async Task OnEnterSession(string sessionCode, string user)
         {
+            _logger.LogInformation(Context.User.Identity.Name);
             if (CheckSessionState(sessionCode, user)) {
                 _logger.LogInformation("OnEnterSession code: {0}, user: {1}", sessionCode, user);
-                _sessionHandler.AddOrUpdateConnectionId(user, Context.ConnectionId);
-                Clients.Client(Context.ConnectionId).SendAsync("enableEditor");
+
+                await Groups.AddToGroupAsync(Context.ConnectionId, sessionCode);
+
+                await Clients.Client(Context.ConnectionId).SendAsync("enableEditor");
             }
         }
 
-        public void OnCodeEditorStateChanged(string sessionCode, string user, string content)
+        public async Task OnCodeEditorStateChanged(string sessionCode, string user, string content)
         {
             if (CheckSessionState(sessionCode, user))
             {
                 _logger.LogInformation("OnCodeEditorStateChanged");
                 _sessionHandler.UpdateSessionState(sessionCode, content);
-                IReadOnlyList<string> targetConnectionIds = _sessionHandler.GetSessionConnectionIds(sessionCode, user);
 
-                if (targetConnectionIds.Count > 0)
-                {
-                    Clients.Clients(targetConnectionIds).SendAsync("updateCodeEditor", content);
-                }
+                await Clients.GroupExcept(sessionCode, Context.ConnectionId).SendAsync("updateCodeEditor", content);
             }
         }
 
-        public void OnCodeEditorLocked(string sessionCode, string user)
+        public async Task OnCodeEditorLocked(string sessionCode, string user)
         {
             if (CheckSessionState(sessionCode, user))
             {
@@ -66,15 +66,11 @@ namespace RealtimeCodeEditor.Hubs
                 _logger.LogInformation("OnCodeEditorLocked");
                 _sessionHandler.LockSession(sessionCode);
 
-                IReadOnlyList<string> targetConnectionIds = _sessionHandler.GetSessionConnectionIds(sessionCode);
-                if (targetConnectionIds.Count > 0)
-                {
-                    Clients.Clients(targetConnectionIds).SendAsync("lockCodeEditor");
-                }
+                await Clients.Group(sessionCode).SendAsync("lockCodeEditor");
             }
         }
 
-        public void OnCodeEditorUnlocked(string sessionCode, string user)
+        public async Task OnCodeEditorUnlocked(string sessionCode, string user)
         {
             if (CheckSessionState(sessionCode, user))
             {
@@ -86,11 +82,7 @@ namespace RealtimeCodeEditor.Hubs
                 _logger.LogInformation("OnCodeEditorUnlocked");
                 _sessionHandler.UnlockSession(sessionCode);
 
-                IReadOnlyList<string> targetConnectionIds = _sessionHandler.GetSessionConnectionIds(sessionCode);
-                if (targetConnectionIds.Count > 0)
-                {
-                    Clients.Clients(targetConnectionIds).SendAsync("unlockCodeEditor");
-                }
+                await Clients.Group(sessionCode).SendAsync("unlockCodeEditor");
             }
         }
     }

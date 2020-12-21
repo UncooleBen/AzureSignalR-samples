@@ -21,7 +21,6 @@ namespace RealtimeCodeEditor.Models
         private ILogger<SessionHandler> _logger;
 
         private ConcurrentDictionary<string, Session> _sessions;
-        private ConcurrentDictionary<string, string> _connectionIds;
 
         private readonly int _sessionCodeLength = 6;
 
@@ -33,7 +32,6 @@ namespace RealtimeCodeEditor.Models
         {
             _logger = logger;
             _sessions = new ConcurrentDictionary<string, Session>();
-            _connectionIds = new ConcurrentDictionary<string, string>();
             _sessionChecker = new Timer(_ => CheckSession(), state: null, dueTime: TimeSpan.FromMilliseconds(0), period: _sessionCheckingInterval);
         }
 
@@ -168,32 +166,6 @@ namespace RealtimeCodeEditor.Models
             return session.Creator == creator;
         }
 
-        public IReadOnlyList<string> GetSessionConnectionIds(string sessionCode, string except = "")
-        {
-            KeyValuePair<string, Session> sessionCodeSessionPair =
-                _sessions
-                .Where((pair) => pair.Key == sessionCode && pair.Value.Type == SessionTypeEnum.Active)
-                .FirstOrDefault();
-
-            if (sessionCodeSessionPair.Equals(default(KeyValuePair<string, Session>))) // No elements in sequence
-            {
-                return Array.Empty<string>();
-            }
-
-            Session session = sessionCodeSessionPair.Value;
-
-            IEnumerable<string> connectionIds = from pair in _connectionIds
-                                                where session.GetUsers(except).Contains(pair.Key)
-                                                select pair.Value;
-
-            return connectionIds.ToList().AsReadOnly();
-        }
-
-        public void AddOrUpdateConnectionId(string user, string connectionId)
-        {
-            _connectionIds.AddOrUpdate(user, (s) => connectionId, (s1, s2) => connectionId);
-        }
-
         private void CheckSession()
         {
             List<string> expiredSessionCodes = new List<string>();
@@ -221,19 +193,14 @@ namespace RealtimeCodeEditor.Models
             foreach (string expiredSessionCode in expiredSessionCodes)
             {
                 _sessions.Remove(expiredSessionCode, out Session expiredSession);
-
                 expiredSession.Dispose();
             }
-
-
         }
 
         public void Dispose()
         {
             _sessionChecker.Dispose();
-
             _sessions.Clear();
-            _connectionIds.Clear();
         }
     }
 }
